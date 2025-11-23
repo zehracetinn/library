@@ -11,7 +11,7 @@ public class TmdbService : IContentService
     public TmdbService(IConfiguration config, HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _apiKey = config["Tmdb:ApiKey"]; // appsettings.json'dan alınacak
+        _apiKey = config["ec47c8499be29f5ae01de44bfe781680"]; // appsettings.json'dan alınacak
     }
 
     public async Task<Content> SearchContentAsync(string query, string type = "movie")

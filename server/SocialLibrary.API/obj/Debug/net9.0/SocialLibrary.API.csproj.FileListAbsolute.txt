@@ -142,3 +142,4 @@
 /Users/USER/Desktop/sosyal-kutuphane/server/SocialLibrary.API/obj/Debug/net9.0/ref/SocialLibrary.API.dll
 /Users/USER/Desktop/sosyal-kutuphane/server/SocialLibrary.API/bin/Debug/net9.0/BCrypt.Net-Next.dll
 /Users/USER/Desktop/sosyal-kutuphane/server/SocialLibrary.API/bin/Debug/net9.0/Newtonsoft.Json.dll
+/Users/USER/Desktop/sosyal-kutuphane/server/SocialLibrary.API/obj/Debug/net9.0/SocialLibrary.API.sourcelink.json

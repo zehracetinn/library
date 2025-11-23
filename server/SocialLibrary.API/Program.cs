@@ -20,10 +20,21 @@ builder.Services.AddSwaggerGen();
 
 // Token service
 builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddHttpClient();
-builder.Services.AddScoped<IContentService, TmdbService>();  // Varsayılan olarak TMDb kullanılır
-builder.Services.AddScoped<IContentService, GoogleBooksService>();  // Google Books için yedek
 
+// HttpClient yapılandırması
+builder.Services.AddHttpClient<TmdbService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.themoviedb.org/3/"); // TMDb API base URL
+});
+
+builder.Services.AddHttpClient<GoogleBooksService>(client =>
+{
+    client.BaseAddress = new Uri("https://www.googleapis.com/books/v1/"); // Google Books API base URL
+});
+
+// IContentService
+builder.Services.AddScoped<IContentService, TmdbService>();  // Varsayılan olarak TMDb kullanılır
+builder.Services.AddScoped<IContentService, GoogleBooksService>();  // Google Books için opsiyonel
 
 // JWT Auth
 var jwtKey = builder.Configuration["Jwt:Key"]!;
