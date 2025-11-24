@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using SocialLibrary.API.Data;
 using SocialLibrary.API.Services;
 
@@ -12,30 +13,53 @@ builder.Services.AddControllers();
 
 // DbContext
 builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+);
 
-// Swagger
+// Swagger + JWT
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Token service
-builder.Services.AddScoped<ITokenService, TokenService>();
-
-// HttpClient yapılandırması
-builder.Services.AddHttpClient<TmdbService>(client =>
+builder.Services.AddSwaggerGen(options =>
 {
-    client.BaseAddress = new Uri("https://api.themoviedb.org/3/"); // TMDb API base URL
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "JWT token'ı buraya yazın. Format: Bearer {token}",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
-builder.Services.AddHttpClient<GoogleBooksService>(client =>
+// Services / HttpClient
+builder.Services.AddHttpClient<TmdbService>(c =>
 {
-    client.BaseAddress = new Uri("https://www.googleapis.com/books/v1/"); // Google Books API base URL
+    c.BaseAddress = new Uri("https://api.themoviedb.org/3/");
+});
+builder.Services.AddHttpClient<GoogleBooksService>(c =>
+{
+    c.BaseAddress = new Uri("https://www.googleapis.com/books/v1/");
 });
 
-// IContentService
 builder.Services.AddScoped<TmdbService>();
 builder.Services.AddScoped<GoogleBooksService>();
- // Google Books için opsiyonel
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 // JWT Auth
 var jwtKey = builder.Configuration["Jwt:Key"]!;
@@ -43,10 +67,10 @@ var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+    .AddJwtBearer(opt =>
     {
-        options.RequireHttpsMetadata = false; // dev
-        options.TokenValidationParameters = new TokenValidationParameters
+        opt.RequireHttpsMetadata = false;
+        opt.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidIssuer = jwtIssuer,
@@ -55,7 +79,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromSeconds(10)
+            ClockSkew = TimeSpan.FromSeconds(5)
         };
     });
 
@@ -75,5 +99,4 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
 app.Run();
