@@ -11,6 +11,7 @@ public class AppDbContext : DbContext
     public DbSet<Rating> Ratings { get; set; }
     public DbSet<Review> Reviews { get; set; }
     public DbSet<Follow> Follows { get; set; }
+    public DbSet<Activity> Activities { get; set; }
 
 
 

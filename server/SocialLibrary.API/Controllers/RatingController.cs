@@ -56,6 +56,22 @@ public class RatingsController : ControllerBase
             existing.RatedAt = DateTime.UtcNow;
         }
 
+        _db.Activities.Add(new Activity
+        {
+        UserId = userId,
+        ActionType = "rating",
+        ContentId = req.ContentId,
+        Type = req.Type,
+        Score = req.Score,
+        Title = req.Title,          // Eğer req'e title eklersen
+        ImageUrl = req.ImageUrl     // istersen ekle
+        });
+
+
+
+
+
+
         _db.SaveChanges();
         return Ok();
     }
