@@ -17,12 +17,22 @@ public class RatingsController : ControllerBase
         _db = db;
     }
 
-    public class RateRequest
+        public class RateRequest
     {
         public string ContentId { get; set; } = "";
-        public string Type { get; set; } = "";   // "movie" / "book"
-        public int Score { get; set; }           // 1–10
+        public string Type { get; set; } = "";
+        public int Score { get; set; }
+        public string? Title { get; set; }
+        public string? ImageUrl { get; set; }
     }
+
+
+
+
+
+
+
+    
 
     // 1) Puan ver / güncelle
     [HttpPost]

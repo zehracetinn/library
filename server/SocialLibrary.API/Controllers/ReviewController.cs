@@ -51,6 +51,17 @@ public class ReviewsController : ControllerBase
             Text = req.Text
         };
 
+        _db.Activities.Add(new Activity
+        {
+            UserId = userId,
+            ActionType = "review",
+            ContentId = req.ContentId,
+            Type = req.Type,
+            Snippet = req.Text.Length > 120 ? req.Text.Substring(0, 120) + "..." : req.Text
+        });
+
+        
+
         _db.Reviews.Add(review);
         _db.SaveChanges();
 

@@ -98,6 +98,16 @@ public class UserContentController : ControllerBase
         {
             item.Status = req.Status;
         }
+        _db.Activities.Add(new Activity
+        {
+            UserId = userId,
+            sActionType = "status",
+            ContentId = req.ContentId,
+            Type = req.Type,
+            Status = req.Status,
+            Title = req.Title,
+            ImageUrl = req.ImageUrl
+        });
 
         _db.SaveChanges();
         return Ok(item);
