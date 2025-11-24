@@ -33,8 +33,9 @@ builder.Services.AddHttpClient<GoogleBooksService>(client =>
 });
 
 // IContentService
-builder.Services.AddScoped<IContentService, TmdbService>();  // Varsayılan olarak TMDb kullanılır
-builder.Services.AddScoped<IContentService, GoogleBooksService>();  // Google Books için opsiyonel
+builder.Services.AddScoped<TmdbService>();
+builder.Services.AddScoped<GoogleBooksService>();
+ // Google Books için opsiyonel
 
 // JWT Auth
 var jwtKey = builder.Configuration["Jwt:Key"]!;

@@ -3,7 +3,7 @@ using SocialLibrary.API.Models;
 
 namespace SocialLibrary.API.Services;
 
-public class TmdbService : IContentService
+public class TmdbService
 {
     private readonly HttpClient _httpClient;
     private readonly string _apiKey;
@@ -11,48 +11,54 @@ public class TmdbService : IContentService
     public TmdbService(IConfiguration config, HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _apiKey = config["ec47c8499be29f5ae01de44bfe781680"]; // appsettings.json'dan alınacak
+        _apiKey = config["Tmdb:ApiKey"]!;
     }
 
-    public async Task<Content> SearchContentAsync(string query, string type = "movie")
+    public async Task<Content> SearchContentAsync(string query)
     {
-    var url = $"https://api.themoviedb.org/3/search/{type}?api_key={_apiKey}&query={query}";
-    var response = await _httpClient.GetStringAsync(url);
-    var data = JsonConvert.DeserializeObject<dynamic>(response);
+        var url = $"https://api.themoviedb.org/3/search/movie?api_key={_apiKey}&query={Uri.EscapeDataString(query)}";
+        var json = await _httpClient.GetStringAsync(url);
+        dynamic data = JsonConvert.DeserializeObject(json);
 
-    if (data?.results == null || data.results.Count == 0)
-    {
-        // Eğer sonuç yoksa, uygun bir hata veya boş içerik dönebilirsiniz.
-        return new Content { Title = "No results found" };
+        if (data.results == null || data.results.Count == 0)
+            return new Content { Title = "No results found" };
+
+        var item = data.results[0];
+
+        return new Content
+        {
+            Id = item.id.ToString(),
+            Title = item.title,
+            Description = item.overview,
+            Year = ((string?)item.release_date)?.Split('-')[0],
+            ImageUrl = $"https://image.tmdb.org/t/p/w500{item.poster_path}"
+        };
     }
 
-    return new Content
+    public async Task<ContentDetail> GetContentDetailsAsync(string id)
     {
-        Id = data.results[0].id,
-        Title = data.results[0].title,
-        Description = data.results[0].overview,
-        Year = data.results[0].release_date?.ToString("yyyy"),
-        ImageUrl = $"https://image.tmdb.org/t/p/w500{data.results[0].poster_path}"
-    };
-    }
+        var url = $"https://api.themoviedb.org/3/movie/{id}?api_key={_apiKey}";
+        var json = await _httpClient.GetStringAsync(url);
+        dynamic data = JsonConvert.DeserializeObject(json);
 
+        // Genre fix (Select çalışmaz → foreach kullanılmalı)
+        string genre = "";
 
+        if (data.genres != null)
+        {
+            foreach (var g in data.genres)
+                genre += (string)g.name + ", ";
 
-
-
-    public async Task<ContentDetail> GetContentDetailsAsync(int contentId, string type = "movie")
-    {
-        var url = $"https://api.themoviedb.org/3/{type}/{contentId}?api_key={_apiKey}";
-        var response = await _httpClient.GetStringAsync(url);
-        var data = JsonConvert.DeserializeObject<dynamic>(response);
+            if (genre.EndsWith(", "))
+                genre = genre[..^2];
+        }
 
         return new ContentDetail
         {
-            Id = contentId,
+            Id = id,
             Title = data.title,
             Description = data.overview,
-            Director = data.director,
-            Genre = data.genres[0].name,
+            Genre = genre,
             Rating = data.vote_average,
             ImageUrl = $"https://image.tmdb.org/t/p/w500{data.poster_path}"
         };
