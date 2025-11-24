@@ -71,7 +71,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// AuthN/Z middleware
 app.UseAuthentication();
 app.UseAuthorization();
 
