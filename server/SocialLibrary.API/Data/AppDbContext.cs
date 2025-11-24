@@ -10,6 +10,8 @@ public class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Rating> Ratings { get; set; }
     public DbSet<Review> Reviews { get; set; }
+    public DbSet<Follow> Follows { get; set; }
+
 
 
     public DbSet<UserContent> UserContents => Set<UserContent>();   // 🔥 BURADA OLMALI
