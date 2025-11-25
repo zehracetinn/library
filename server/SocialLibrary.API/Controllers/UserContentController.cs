@@ -101,7 +101,7 @@ public class UserContentController : ControllerBase
         _db.Activities.Add(new Activity
         {
             UserId = userId,
-            sActionType = "status",
+            ActionType = "status",
             ContentId = req.ContentId,
             Type = req.Type,
             Status = req.Status,

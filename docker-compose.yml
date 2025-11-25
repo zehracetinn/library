@@ -1,4 +1,20 @@
 services:
+  api:
+    build:
+      context: ./server/SocialLibrary.API
+      dockerfile: Dockerfile
+    container_name: sociallib_api
+    ports:
+      - "5248:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=sociallib;Username=admin;Password=admin123"
+      GoogleBooks__ApiKey: "AIzaSyAYS1O44dul5RERotqEA9ESL647gjPSGSY"
+      Tmdb__ApiKey: "ec47c8499be29f5ae01de44bfe781680"
+    depends_on:
+      - db
+      - redis
+
   db:
     image: postgres:16-alpine
     container_name: sociallib_db
@@ -20,5 +36,3 @@ services:
 
 volumes:
   pgdata:
-
-
