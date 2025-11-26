@@ -1,11 +1,12 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* Tarayıcıya sitenin koyu tema olduğunu söylüyoruz */
+  color-scheme: dark; 
+  color: rgba(255, 255, 255, 0.9);
+  background-color: #020617; /* Senin tasarımındaki koyu lacivert */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,62 +14,57 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+/* SAYFA YAPISINI SIFIRLAMA (En Önemli Kısım) */
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Çift scrollbar çıkmasını engeller */
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  /* ESKİ HATALI KODLARI İPTAL EDİYORUZ */
+  display: block;   /* Flex yerine Block yapıyoruz */
+  place-items: unset; /* Ortalamayı kaldırıyoruz */
+  min-width: unset;
   
+  background-color: #020617;
+}
+
+/* React uygulamasının kök dizini de tam ekran olsun */
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
   padding: 0;
-  background-color: #f5f5f5; /* açık arkaplan */
-  font-family: sans-serif;
-
-
+  
+  /* Eski kodda text-align: center vardı, onu sola çekiyoruz */
+  text-align: left; 
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
+/* Link stilleri */
+a {
   font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+  color: #818cf8;
+  text-decoration: inherit;
+  transition: 0.3s;
 }
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+a:hover {
+  color: #a5b4fc;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+/* Scrollbar Güzelleştirme (Bonus Şıklık) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0f172a; 
+}
+::-webkit-scrollbar-thumb {
+  background: #334155; 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569; 
 }

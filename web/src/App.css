@@ -1,42 +1,69 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+
+/* TEMEL SIFIRLAMA VE AYARLAR */
+* {
+  box-sizing: border-box;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #020617; /* Çok koyu lacivert zemin */
+  color: #e2e8f0;
+  overflow: hidden; /* Sayfa taşmasını engeller */
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* SCROLLBAR TASARIMI (İsteğe bağlı şıklık) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* MENÜ LİNKLERİ İÇİN STİL */
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  color: #94a3b8;
+  text-decoration: none;
+  border-radius: 12px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
 }
 
-.card {
-  padding: 2em;
+/* Linkin üzerine gelince */
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  transform: translateX(5px); /* Hafif sağa kayma efekti */
 }
 
-.read-the-docs {
-  color: #888;
+/* Aktif olan link (React Router NavLink ile çalışır) */
+.nav-item.active {
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* LOGO EFEKTİ */
+.brand-logo {
+  background: linear-gradient(to right, #818cf8, #c084fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+  letter-spacing: -0.5px;
 }

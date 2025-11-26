@@ -1,4 +1,5 @@
 import { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import {
   Box,
@@ -14,15 +15,20 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleLogin = async () => {
-    try {
-      setError("");
-      await login(email, password);
-      window.location.href = "/";
-    } catch (err: any) {
-      setError("Email veya şifre hatalı!");
-    }
-  };
+ 
+
+const navigate = useNavigate();
+
+const handleLogin = async () => {
+  try {
+    setError("");
+    await login(email, password);
+    navigate("/feed");
+  } catch (err) {
+    setError("Email veya şifre hatalı!");
+  }
+};
+;
 
   return (
     <Box

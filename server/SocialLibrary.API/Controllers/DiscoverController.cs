@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using SocialLibrary.API.Data;
+using SocialLibrary.API.Services; // TmdbService için bunu ekledik
 using SocialLibrary.API.Models;
 
 namespace SocialLibrary.API.Controllers;
@@ -8,53 +8,40 @@ namespace SocialLibrary.API.Controllers;
 [Route("api/[controller]")]
 public class DiscoverController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    private readonly TmdbService _tmdbService;
 
-    public DiscoverController(AppDbContext db)
+    // TmdbService'i buraya "Inject" ettik. Artık kullanabiliriz.
+    public DiscoverController(TmdbService tmdbService)
     {
-        _db = db;
+        _tmdbService = tmdbService;
     }
 
-    // /api/Discover/top-rated?type=movie&minVotes=5
+    // GET: /api/Discover/top-rated
     [HttpGet("top-rated")]
-    public IActionResult GetTopRated([FromQuery] string type = "movie", [FromQuery] int minVotes = 5, [FromQuery] int limit = 20)
+    public async Task<IActionResult> GetTopRated([FromQuery] string type = "movie")
     {
-        var query = _db.Ratings
-            .Where(r => r.Type == type)
-            .GroupBy(r => new { r.ContentId, r.Type })
-            .Select(g => new DiscoverResult
-            {
-                ContentId = g.Key.ContentId,
-                Type = g.Key.Type,
-                AverageScore = g.Average(x => x.Score),
-                VoteCount = g.Count()
-            })
-            .Where(x => x.VoteCount >= minVotes)
-            .OrderByDescending(x => x.AverageScore)
-            .ThenByDescending(x => x.VoteCount)
-            .Take(limit)
-            .ToList();
+        // Eğer film isteniyorsa TMDB'den çek
+        if (type == "movie")
+        {
+            var results = await _tmdbService.GetTopRatedAsync();
+            return Ok(new { items = results });
+        }
 
-        return Ok(query);
+        // Kitap kısmı için ilerde GoogleBooksService eklersin
+        return Ok(new { items = new List<object>() });
     }
 
-    // /api/Discover/most-popular?type=movie
+    // GET: /api/Discover/most-popular
     [HttpGet("most-popular")]
-    public IActionResult GetMostPopular([FromQuery] string type = "movie", [FromQuery] int limit = 20)
+    public async Task<IActionResult> GetMostPopular([FromQuery] string type = "movie")
     {
-        var query = _db.UserContents
-            .Where(c => c.Type == type)
-            .GroupBy(c => new { c.ContentId, c.Type })
-            .Select(g => new
-            {
-                ContentId = g.Key.ContentId,
-                Type = g.Key.Type,
-                Count = g.Count()
-            })
-            .OrderByDescending(x => x.Count)
-            .Take(limit)
-            .ToList();
+        // Eğer film isteniyorsa TMDB'den çek
+        if (type == "movie")
+        {
+            var results = await _tmdbService.GetPopularAsync();
+            return Ok(new { items = results });
+        }
 
-        return Ok(query);
+        return Ok(new { items = new List<object>() });
     }
 }

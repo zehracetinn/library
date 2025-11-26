@@ -6,7 +6,7 @@ import Feed from "./pages/Feed";
 import Search from "./pages/Search";
 import Profile from "./pages/Profile";
 import ContentDetail from "./pages/ContentDetail";
-
+import Discover from "./pages/Discover";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
@@ -14,19 +14,23 @@ export default function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* Public */}
+        {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/discover" element={<Discover />} />
 
-        {/* Protected */}
+        {/* Protected Routes */}
         <Route
-          path="/"
+          path="/feed"
           element={
             <ProtectedRoute>
               <Feed />
             </ProtectedRoute>
           }
         />
+
+        {/* Root → feed */}
+        <Route path="/" element={<Navigate to="/feed" />} />
 
         <Route
           path="/search"
@@ -55,7 +59,7 @@ export default function App() {
           }
         />
 
-        {/* Default */}
+        {/* Fallback */}
         <Route path="*" element={<Navigate to="/login" />} />
 
       </Routes>
