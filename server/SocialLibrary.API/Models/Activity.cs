@@ -10,14 +10,14 @@ public class Activity
     // "rating", "review", "status", "favorite"
 
     public string ContentId { get; set; } = "";
-    public string Type { get; set; } = "";        // "movie" / "book"
+    public string Type { get; set; } = "";   // "movie" / "book"
 
     public string? Title { get; set; }
     public string? ImageUrl { get; set; }
 
-    public int? Score { get; set; }               // rating için
-    public string? Status { get; set; }           // watched/toWatch/read/toRead
-    public string? Snippet { get; set; }          // yorumdan kısa bir özet
+    public int? Score { get; set; }           // rating için
+    public string? Status { get; set; }       // watched / toWatch / read / toRead
+    public string? Snippet { get; set; }      // yorumlardan ilk 150 karakter
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

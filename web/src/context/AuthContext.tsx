@@ -1,9 +1,8 @@
 import { createContext, useState } from "react";
 import type { ReactNode } from "react";
-import api from "../api/axiosClient.ts";
+import api from "../api/axiosClient";
 
 interface User {
-  id: number;
   email: string;
   username: string;
 }
@@ -23,7 +22,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await api.post("/Auth/login", { email, password });
 
     localStorage.setItem("token", res.data.token);
-    setUser(res.data.user);
+
+    setUser({
+      email: res.data.email,
+      username: res.data.username,
+    });
   };
 
   const logout = () => {

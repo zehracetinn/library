@@ -17,24 +17,16 @@ public class RatingsController : ControllerBase
         _db = db;
     }
 
-        public class RateRequest
+    public class RateRequest
     {
         public string ContentId { get; set; } = "";
-        public string Type { get; set; } = "";
+        public string Type { get; set; } = "";      // movie / book
         public int Score { get; set; }
         public string? Title { get; set; }
         public string? ImageUrl { get; set; }
     }
 
-
-
-
-
-
-
-    
-
-    // 1) Puan ver / güncelle
+    // POST /api/Ratings
     [HttpPost]
     public IActionResult Rate([FromBody] RateRequest req)
     {
@@ -66,27 +58,23 @@ public class RatingsController : ControllerBase
             existing.RatedAt = DateTime.UtcNow;
         }
 
+        // ACTIVITIES TABLOSUNA LOG EKLE
         _db.Activities.Add(new Activity
         {
-        UserId = userId,
-        ActionType = "rating",
-        ContentId = req.ContentId,
-        Type = req.Type,
-        Score = req.Score,
-        Title = req.Title,          // Eğer req'e title eklersen
-        ImageUrl = req.ImageUrl     // istersen ekle
+            UserId = userId,
+            ActionType = "rating",
+            ContentId = req.ContentId,
+            Type = req.Type,
+            Score = req.Score,
+            Title = req.Title,
+            ImageUrl = req.ImageUrl
         });
-
-
-
-
-
 
         _db.SaveChanges();
         return Ok();
     }
 
-    // 2) İçeriğin ortalama puanı + oy sayısı
+    // GET /api/Ratings/content/{contentId}?type=movie
     [HttpGet("content/{contentId}")]
     [AllowAnonymous]
     public IActionResult GetContentRating(string contentId, [FromQuery] string type)

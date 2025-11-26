@@ -1,0 +1,40 @@
+/* Sayfanın kendisi */
+.feed-container {
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0d0f2d 0%, #12152f 100%);
+  display: flex;
+  justify-content: center;
+  padding-top: 40px;
+}
+
+/* İçerik alanı */
+.feed-content {
+  width: 100%;
+  max-width: 760px; /* 🔥 Kartlar tam ortada ve modern */
+  padding: 0 20px 60px;
+}
+
+/* Başlık */
+.feed-title {
+  color: white;
+  font-size: 30px;
+  font-weight: 700;
+  margin-bottom: 25px;
+  text-shadow: 0 0 10px rgba(255,255,255,0.25);
+}
+
+/* Yükleniyor */
+.loading {
+  padding: 40px;
+  text-align: center;
+  font-size: 20px;
+  color: white;
+}
+
+/* Aktivite yoksa */
+.no-activity {
+  color: #ddd;
+  padding: 20px;
+  font-size: 16px;
+}

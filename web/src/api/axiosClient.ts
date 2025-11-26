@@ -1,15 +1,26 @@
 import axios from "axios";
 
-const axiosClient = axios.create({
-  baseURL: "http://localhost:5248/api",
+const api = axios.create({
+  baseURL: "http://localhost:5248/api"
+
 });
 
-axiosClient.interceptors.request.use((config) => {
+api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
+
+  // Login VE Register'da token gönderme!
+  if (
+    config.url?.includes("/Auth/login") ||
+    config.url?.includes("/Auth/register")
+  ) {
+    return config;
+  }
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
   return config;
 });
 
-export default axiosClient;
+export default api;
