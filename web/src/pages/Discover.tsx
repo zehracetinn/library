@@ -225,12 +225,12 @@ export default function Discover() {
       ) : (
         <>
           {searchResults.length > 0 && (
-             <CategoryRow title="🔍 Arama Sonuçları" items={searchResults} contentType={searchType} onClickItem={(item) => navigate(`/content/${item.id}`)} />
+             <CategoryRow title="🔍 Arama Sonuçları" items={searchResults} contentType={searchType} onClickItem={(item, type) => navigate(`/content/${item.id}?type=${type}`)} />
           )}
 
           {/* BU İKİSİ ARTIK MOCK DATA SAYESİNDE KESİN GÖRÜNECEK */}
-          <CategoryRow title="🔥 En Popülerler" items={mostPopular} contentType="movie" onClickItem={(item) => navigate(`/content/${item.id}`)} />
-          <CategoryRow title="⭐ En Yüksek Puanlılar" items={topRated} contentType="movie" onClickItem={(item) => navigate(`/content/${item.id}`)} />
+          <CategoryRow title="🔥 En Popülerler" items={mostPopular} contentType="movie" onClickItem={(item, type) => navigate(`/content/${item.id}?type=${type}`)} />
+          <CategoryRow title="⭐ En Yüksek Puanlılar" items={topRated} contentType="movie" onClickItem={(item, type) => navigate(`/content/${item.id}?type=${type}`)} />
         </>
       )}
     </div>

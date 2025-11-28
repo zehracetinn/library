@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SocialLibrary.API.Data;
 using SocialLibrary.API.Models;
+using SocialLibrary.API.Services; // TmdbService için gerekli
 
 namespace SocialLibrary.API.Controllers;
 
@@ -11,10 +12,13 @@ namespace SocialLibrary.API.Controllers;
 public class RatingsController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly TmdbService _tmdbService;
 
-    public RatingsController(AppDbContext db)
+    // TmdbService'i buraya ekledik (Dependency Injection)
+    public RatingsController(AppDbContext db, TmdbService tmdbService)
     {
         _db = db;
+        _tmdbService = tmdbService;
     }
 
     public class RateRequest
@@ -28,13 +32,49 @@ public class RatingsController : ControllerBase
 
     // POST /api/Ratings
     [HttpPost]
-    public IActionResult Rate([FromBody] RateRequest req)
+    public async Task<IActionResult> Rate([FromBody] RateRequest req)
     {
         int userId = int.Parse(User.FindFirst("id")!.Value);
 
         if (req.Score < 1 || req.Score > 10)
-            return BadRequest("Score must be between 1 and 10");
+            return BadRequest("Puan 1 ile 10 arasında olmalıdır.");
 
+        // ---------------------------------------------------------
+        // 1. ADIM: İÇERİK KONTROLÜ (HAYALET FİLM SORUNU ÇÖZÜMÜ)
+        // ---------------------------------------------------------
+        var contentExists = _db.Contents.Any(c => c.Id == req.ContentId);
+        
+        if (!contentExists)
+        {
+            // Veritabanında yoksa, önce TMDB'den çekip kaydedelim
+            if (req.Type == "movie")
+            {
+                try 
+                {
+                    var tmdbContent = await _tmdbService.GetContentDetailsAsync(req.ContentId);
+                    var newContent = new Content
+                    {
+                        Id = tmdbContent.Id,
+                        Title = tmdbContent.Title,
+                        Description = tmdbContent.Description,
+                        ImageUrl = tmdbContent.ImageUrl,
+                        Year = "", // Servisten yıl dönüyorsa eklenebilir
+                        Type = "movie"
+                    };
+                    _db.Contents.Add(newContent);
+                    await _db.SaveChangesAsync(); // Önce içeriği kaydet!
+                }
+                catch
+                {
+                    // Eğer TMDB'de de bulunamazsa (çok nadir), hata dönmeyelim
+                    // Sadece loglayıp devam edebiliriz veya manuel ekleyebiliriz.
+                }
+            }
+            // Kitap için ilerde buraya else if (req.Type == "book") eklersin.
+        }
+        // ---------------------------------------------------------
+
+        // 2. ADIM: PUANLAMA İŞLEMİ
         var existing = _db.Ratings
             .FirstOrDefault(r => r.UserId == userId &&
                                  r.ContentId == req.ContentId &&
@@ -49,7 +89,6 @@ public class RatingsController : ControllerBase
                 Type = req.Type,
                 Score = req.Score
             };
-
             _db.Ratings.Add(rating);
         }
         else
@@ -58,7 +97,7 @@ public class RatingsController : ControllerBase
             existing.RatedAt = DateTime.UtcNow;
         }
 
-        // ACTIVITIES TABLOSUNA LOG EKLE
+        // 3. ADIM: AKTİVİTE LOGU
         _db.Activities.Add(new Activity
         {
             UserId = userId,
@@ -70,7 +109,7 @@ public class RatingsController : ControllerBase
             ImageUrl = req.ImageUrl
         });
 
-        _db.SaveChanges();
+        await _db.SaveChangesAsync();
         return Ok();
     }
 

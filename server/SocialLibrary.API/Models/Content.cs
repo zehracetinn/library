@@ -7,5 +7,8 @@ namespace SocialLibrary.API.Models
         public string? Description { get; set; }
         public string? Year { get; set; }
         public string? ImageUrl { get; set; }
+
+        public string Type { get; set; } = "movie"; // movie veya book
+
     }
 }

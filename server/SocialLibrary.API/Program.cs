@@ -81,20 +81,25 @@ var jwtKey = builder.Configuration["Jwt:Key"]!;
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 
+// Program.cs içindeki JWT kısmını bununla değiştir:
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opt =>
     {
         opt.RequireHttpsMetadata = false;
+        opt.SaveToken = true;
         opt.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = true,
-            ValidIssuer = jwtIssuer,
-            ValidateAudience = true,
-            ValidAudience = jwtAudience,
+            // ŞİMDİLİK SADECE ANAHTARI KONTROL ET (En güvenli yöntem geliştirme için)
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            
+            // Bunları false yapıyoruz ki ufak isim hatalarından patlamasın
+            ValidateIssuer = false, 
+            ValidateAudience = false, 
+            
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromSeconds(5)
+            ClockSkew = TimeSpan.Zero
         };
     });
 

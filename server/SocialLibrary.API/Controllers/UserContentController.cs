@@ -2,79 +2,65 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SocialLibrary.API.Data;
 using SocialLibrary.API.Models;
+using SocialLibrary.API.Services;
 
 namespace SocialLibrary.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize] // JWT gerekli
+[Authorize]
 public class UserContentController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly TmdbService _tmdbService;
 
-    public UserContentController(AppDbContext db)
+    public UserContentController(AppDbContext db, TmdbService tmdbService)
     {
         _db = db;
+        _tmdbService = tmdbService;
     }
 
-    // -------------------------------
-    // FAVORİYE EKLEME
-    // -------------------------------
-    [HttpPost("add")]
-    public IActionResult Add(UserContent model)
+    public class SetStatusRequest
     {
-        int userId = int.Parse(User.FindFirst("id")!.Value);
-
-        model.UserId = userId;
-        _db.UserContents.Add(model);
-        _db.SaveChanges();
-
-        return Ok(model);
+        public string ContentId { get; set; } = "";
+        public string Type { get; set; } = "";      // movie/book
+        public string Title { get; set; } = "";
+        public string? ImageUrl { get; set; }
+        public string Status { get; set; } = "";    // watched/toWatch/read/toRead
     }
 
-    // -------------------------------
-    // FAVORİLERİ LİSTELEME
-    // -------------------------------
-    [HttpGet("list")]
-    public IActionResult GetList()
-    {
-        int userId = int.Parse(User.FindFirst("id")!.Value);
-
-        var items = _db.UserContents
-            .Where(x => x.UserId == userId)
-            .OrderByDescending(x => x.SavedAt)
-            .ToList();
-
-        return Ok(items);
-    }
-
-    // -------------------------------
-    // FAVORİ SİLME
-    // -------------------------------
-    [HttpDelete("{id}")]
-    public IActionResult Delete(int id)
-    {
-        int userId = int.Parse(User.FindFirst("id")!.Value);
-
-        var item = _db.UserContents
-            .FirstOrDefault(x => x.Id == id && x.UserId == userId);
-
-        if (item == null)
-            return NotFound();
-
-        _db.UserContents.Remove(item);
-        _db.SaveChanges();
-
-        return Ok("Deleted");
-    }
-
-    // ------------------------------------------------
-    // KÜTÜPHANE STATÜSÜ EKLE / GÜNCELLE (watched / toWatch / read / toRead)
-    // ------------------------------------------------
+    // KÜTÜPHANE STATÜSÜ EKLE / GÜNCELLE
     [HttpPost("set-status")]
-    public IActionResult SetStatus([FromBody] SetStatusRequest req)
+    public async Task<IActionResult> SetStatus([FromBody] SetStatusRequest req)
     {
         int userId = int.Parse(User.FindFirst("id")!.Value);
+
+        // ---------------------------------------------------------
+        // 1. ADIM: İÇERİK KONTROLÜ
+        // ---------------------------------------------------------
+        var contentExists = _db.Contents.Any(c => c.Id == req.ContentId);
+        if (!contentExists)
+        {
+            if (req.Type == "movie")
+            {
+                try
+                {
+                    var tmdbContent = await _tmdbService.GetContentDetailsAsync(req.ContentId);
+                    var newContent = new Content
+                    {
+                        Id = tmdbContent.Id,
+                        Title = tmdbContent.Title,
+                        Description = tmdbContent.Description,
+                        ImageUrl = tmdbContent.ImageUrl,
+                        Type = "movie"
+                    };
+                    _db.Contents.Add(newContent);
+                    await _db.SaveChangesAsync();
+                }
+                catch { /* Hata yönetimi */ }
+            }
+        }
+        // ---------------------------------------------------------
 
         var item = _db.UserContents
             .FirstOrDefault(x => x.UserId == userId &&
@@ -90,14 +76,18 @@ public class UserContentController : ControllerBase
                 Title = req.Title,
                 ImageUrl = req.ImageUrl,
                 Type = req.Type,
-                Status = req.Status
+                Status = req.Status,
+                SavedAt = DateTime.UtcNow
             };
             _db.UserContents.Add(item);
         }
         else
         {
             item.Status = req.Status;
+            item.SavedAt = DateTime.UtcNow; // Güncelleme tarihini yenile
         }
+
+        // Aktivite Logu
         _db.Activities.Add(new Activity
         {
             UserId = userId,
@@ -109,29 +99,18 @@ public class UserContentController : ControllerBase
             ImageUrl = req.ImageUrl
         });
 
-        _db.SaveChanges();
+        await _db.SaveChangesAsync();
         return Ok(item);
     }
 
-    public class SetStatusRequest
-    {
-        public string ContentId { get; set; } = "";
-        public string Type { get; set; } = "";      // movie/book
-        public string Title { get; set; } = "";
-        public string? ImageUrl { get; set; }
-        public string Status { get; set; } = "";    // watched/toWatch/read/toRead
-    }
-
-    // ------------------------------------------------
-    // BELİRLİ STATÜYE GÖRE FİLTRELEME
-    // ------------------------------------------------
-    [HttpGet("by-status")]
-    public IActionResult GetByStatus([FromQuery] string status)
+    // FAVORİLERİ LİSTELEME
+    [HttpGet("list")]
+    public IActionResult GetList()
     {
         int userId = int.Parse(User.FindFirst("id")!.Value);
 
         var items = _db.UserContents
-            .Where(x => x.UserId == userId && x.Status == status)
+            .Where(x => x.UserId == userId)
             .OrderByDescending(x => x.SavedAt)
             .ToList();
 

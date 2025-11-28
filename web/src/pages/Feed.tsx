@@ -1,38 +1,33 @@
 import { useEffect, useState } from "react";
 import api from "../api/axiosClient";
 import ActivityCard from "../components/ActivityCard";
+import { useNavigate } from "react-router-dom";
 
-// ----- Activity type'ı bileşen DIŞINDA TANIMLANMALI -----
+// ----- Activity Type -----
 interface Activity {
   id: number;
   userId: number;
   username: string;
   avatarUrl?: string;
-
   actionType: "rating" | "review" | "status";
-
   title: string;
   imageUrl?: string;
-
   score?: number;
   snippet?: string;
   status?: string;
-
   createdAt: string;
 }
-// ---------------------------------------------------------
+// --------------------------
 
 export default function Feed() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const loadFeed = async () => {
     try {
       const res = await api.get("/Feed?page=1&pageSize=20");
-
-      // Backend bazen { items: [...] } döner, bazen direkt array
       const data = res.data.items ?? res.data;
-
       setActivities(data);
     } catch (err) {
       console.log("FEED ERROR:", err);
@@ -45,7 +40,7 @@ export default function Feed() {
     loadFeed();
   }, []);
 
-  if (loading)
+  if (loading) {
     return (
       <div
         style={{
@@ -58,6 +53,7 @@ export default function Feed() {
         Loading...
       </div>
     );
+  }
 
   return (
     <div
@@ -73,10 +69,36 @@ export default function Feed() {
       <div
         style={{
           width: "100%",
-          maxWidth: "620px", // Orta kolon
+          maxWidth: "620px",
           padding: "0 20px",
+          position: "relative",
         }}
       >
+        {/* 🔍 Keşfet butonu — SAĞ ÜST */}
+        <div
+          style={{
+            position: "absolute",
+            right: 20,
+            top: -10,
+          }}
+        >
+          <button
+            onClick={() => navigate("/discover")}
+            style={{
+              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+              padding: "10px 20px",
+              borderRadius: "12px",
+              color: "white",
+              border: "none",
+              cursor: "pointer",
+              fontWeight: 600,
+              boxShadow: "0 4px 15px rgba(99,102,241,0.4)",
+            }}
+          >
+            🔍 Keşfet
+          </button>
+        </div>
+
         <h2
           style={{
             color: "white",
