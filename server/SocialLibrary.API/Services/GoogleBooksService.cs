@@ -6,17 +6,16 @@ namespace SocialLibrary.API.Services;
 public class GoogleBooksService
 {
     private readonly HttpClient _httpClient;
-    private readonly string _apiKey;
 
-    public GoogleBooksService(IConfiguration config, HttpClient httpClient)
+    public GoogleBooksService(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _apiKey = config["GoogleBooks:ApiKey"]!;
     }
 
     public async Task<Content> SearchContentAsync(string query)
     {
-        var url = $"https://www.googleapis.com/books/v1/volumes?q={Uri.EscapeDataString(query)}&key={_apiKey}";
+        var url = $"https://www.googleapis.com/books/v1/volumes?q={Uri.EscapeDataString(query)}";
+
         var json = await _httpClient.GetStringAsync(url);
         dynamic data = JsonConvert.DeserializeObject(json);
 
@@ -37,7 +36,8 @@ public class GoogleBooksService
 
     public async Task<ContentDetail> GetContentDetailsAsync(string id)
     {
-        var url = $"https://www.googleapis.com/books/v1/volumes/{id}?key={_apiKey}";
+        var url = $"https://www.googleapis.com/books/v1/volumes/{id}";
+
         var json = await _httpClient.GetStringAsync(url);
         dynamic data = JsonConvert.DeserializeObject(json);
 
@@ -46,8 +46,10 @@ public class GoogleBooksService
             Id = id,
             Title = data.volumeInfo.title,
             Description = data.volumeInfo.description,
-            Authors = data.volumeInfo.authors != null ? string.Join(", ", data.volumeInfo.authors) : "",
-            Genre = data.volumeInfo.categories != null ? string.Join(", ", data.volumeInfo.categories) : "",
+            Authors = data.volumeInfo.authors != null ?
+                      string.Join(", ", data.volumeInfo.authors) : "",
+            Genre = data.volumeInfo.categories != null ?
+                    string.Join(", ", data.volumeInfo.categories) : "",
             Rating = data.volumeInfo.averageRating ?? 0,
             ImageUrl = data.volumeInfo.imageLinks?.thumbnail
         };
