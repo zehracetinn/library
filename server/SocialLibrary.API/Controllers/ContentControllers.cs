@@ -5,9 +5,6 @@ namespace SocialLibrary.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-
-
-
 public class ContentController : ControllerBase
 {
     private readonly TmdbService _tmdb;
@@ -19,23 +16,31 @@ public class ContentController : ControllerBase
         _books = books;
     }
 
+    // 🔍 Film + Kitap Arama
     [HttpGet("search")]
     public async Task<IActionResult> Search(string query, string type = "movie")
     {
         if (type == "movie")
-            return Ok(await _tmdb.SearchContentAsync(query));
+        {
+            var movies = await _tmdb.SearchContentListAsync(query);
+            return Ok(new { items = movies });
+        }
 
         if (type == "book")
-            return Ok(await _books.SearchContentAsync(query));
+        {
+            var books = await _books.SearchContentListAsync(query);
+            return Ok(new { items = books });
+        }
 
         return BadRequest("type must be 'movie' or 'book'");
     }
 
+    // 🔍 Detay
     [HttpGet("{id}")]
     public async Task<IActionResult> GetContent(string id, string type = "movie")
     {
         if (type == "movie")
-            return Ok(await _tmdb.GetContentDetailsAsync((id)));
+            return Ok(await _tmdb.GetContentDetailsAsync(id));
 
         if (type == "book")
             return Ok(await _books.GetContentDetailsAsync(id));

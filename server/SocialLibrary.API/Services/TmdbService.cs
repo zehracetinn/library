@@ -29,48 +29,53 @@ public class TmdbService
     }
 
     // Ortak GET helper
-    private async Task<dynamic> GetAsync(string url)
+    private async Task<dynamic?> GetAsync(string url)
     {
         var json = await _httpClient.GetStringAsync(url);
         return JsonConvert.DeserializeObject(json);
     }
 
     // =====================================================================
-    // 1) ARAMA  (ContentController bunu kullanıyor)
+    // 1) ARAMA  (DÜZELTİLDİ: Metot adı SearchContentListAsync yapıldı)
     // =====================================================================
-    public async Task<Content> SearchContentAsync(string query)
+    public async Task<List<Content>> SearchContentListAsync(string query)
     {
-        var url =
-            $"https://api.themoviedb.org/3/search/movie?api_key={_apiKey}&language=tr-TR&query={Uri.EscapeDataString(query)}";
+        var url = $"https://api.themoviedb.org/3/search/movie?api_key={_apiKey}&query={Uri.EscapeDataString(query)}";
+        
+        // Null kontrolü ile güvenli hale getirildi
+        dynamic? data = await GetAsync(url);
+        var results = new List<Content>();
 
-        dynamic data = await GetAsync(url);
+        if (data == null || data.results == null)
+            return results;
 
-        if (data.results == null || data.results.Count == 0)
-            return new Content { Title = "No results found" };
-
-        var item = data.results[0];
-
-        return new Content
+        foreach (var item in data.results)
         {
-            Id = item.id.ToString(),
-            Title = item.title,
-            Description = item.overview,
-            Year = ((string?)item.release_date)?.Split('-')[0],
-            ImageUrl = item.poster_path != null
-                ? $"https://image.tmdb.org/t/p/w500{item.poster_path}"
-                : null
-        };
+            results.Add(new Content
+            {
+                Id = item.id.ToString(),
+                Title = (string?)item.title ?? "",
+                Description = (string?)item.overview ?? "",
+                Year = ((string?)item.release_date)?.Split('-')[0],
+                ImageUrl = item.poster_path != null
+                    ? $"https://image.tmdb.org/t/p/w500{item.poster_path}"
+                    : null
+            });
+        }
+
+        return results;
     }
 
     // =====================================================================
-    // 2) DETAY (UserContentController / RatingController / ReviewController)
+    // 2) DETAY
     // =====================================================================
-    public async Task<ContentDetail> GetContentDetailsAsync(string id)
+    public async Task<ContentDetail?> GetContentDetailsAsync(string id)
     {
-        var url =
-            $"https://api.themoviedb.org/3/movie/{id}?api_key={_apiKey}&language=tr-TR";
+        var url = $"https://api.themoviedb.org/3/movie/{id}?api_key={_apiKey}&language=tr-TR";
 
-        dynamic data = await GetAsync(url);
+        dynamic? data = await GetAsync(url);
+        
+        if (data == null) return null;
 
         string genre = "";
 
@@ -86,10 +91,10 @@ public class TmdbService
         return new ContentDetail
         {
             Id = id,
-            Title = data.title,
-            Description = data.overview,
+            Title = (string?)data.title ?? "",
+            Description = (string?)data.overview ?? "",
             Genre = genre,
-            Rating = data.vote_average,
+            Rating = (double?)data.vote_average ?? 0,
             ImageUrl = data.poster_path != null
                 ? $"https://image.tmdb.org/t/p/w500{data.poster_path}"
                 : null
@@ -101,22 +106,20 @@ public class TmdbService
     // =====================================================================
     public async Task<List<Content>> GetTopRatedAsync()
     {
-        var url =
-            $"https://api.themoviedb.org/3/movie/top_rated?api_key={_apiKey}&language=tr-TR&page=1";
+        var url = $"https://api.themoviedb.org/3/movie/top_rated?api_key={_apiKey}&language=tr-TR&page=1";
 
-        dynamic data = await GetAsync(url);
-
+        dynamic? data = await GetAsync(url);
         var contentList = new List<Content>();
 
-        if (data.results != null)
+        if (data != null && data.results != null)
         {
             foreach (var item in data.results)
             {
                 contentList.Add(new Content
                 {
                     Id = item.id.ToString(),
-                    Title = item.title,
-                    Description = item.overview,
+                    Title = (string?)item.title ?? "",
+                    Description = (string?)item.overview ?? "",
                     Year = ((string?)item.release_date)?.Split('-')[0],
                     ImageUrl = item.poster_path != null
                         ? $"https://image.tmdb.org/t/p/w500{item.poster_path}"
@@ -133,22 +136,20 @@ public class TmdbService
     // =====================================================================
     public async Task<List<Content>> GetPopularAsync()
     {
-        var url =
-            $"https://api.themoviedb.org/3/movie/popular?api_key={_apiKey}&language=tr-TR&page=1";
+        var url = $"https://api.themoviedb.org/3/movie/popular?api_key={_apiKey}&language=tr-TR&page=1";
 
-        dynamic data = await GetAsync(url);
-
+        dynamic? data = await GetAsync(url);
         var contentList = new List<Content>();
 
-        if (data.results != null)
+        if (data != null && data.results != null)
         {
             foreach (var item in data.results)
             {
                 contentList.Add(new Content
                 {
                     Id = item.id.ToString(),
-                    Title = item.title,
-                    Description = item.overview,
+                    Title = (string?)item.title ?? "",
+                    Description = (string?)item.overview ?? "",
                     Year = ((string?)item.release_date)?.Split('-')[0],
                     ImageUrl = item.poster_path != null
                         ? $"https://image.tmdb.org/t/p/w500{item.poster_path}"
