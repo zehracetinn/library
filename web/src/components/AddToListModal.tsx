@@ -1,156 +1,170 @@
 import { useEffect, useState } from "react";
 import api from "../api/axiosClient";
 
+// 📌 Modal props interface
 interface AddToListModalProps {
   contentId: string;
-  type: string;       // movie / book
+  type: string;
   title: string;
   imageUrl?: string;
-  onClose: () => void; // Modalı kapatma fonksiyonu
+  onClose: () => void;
 }
 
 interface CustomList {
   id: number;
   name: string;
-  items: { contentId: string }[]; // İçindeki elemanların sadece ID'leri yeterli
+  items: { contentId: string }[];
 }
 
-export default function AddToListModal({ contentId, type, title, imageUrl, onClose }: AddToListModalProps) {
-  const [lists, setLists] = useState<CustomList[]>([]);
-  const [newListName, setNewListName] = useState("");
-  const [loading, setLoading] = useState(true);
+export default function AddToListModal({
+  contentId,
+  type,
+  title,
+  imageUrl,
+  onClose
+}: AddToListModalProps) {
 
-  // Listeleri Çek
+  const [lists, setLists] = useState<CustomList[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [savingId, setSavingId] = useState<number | null>(null);
+
   useEffect(() => {
-    fetchLists();
+    loadLists();
   }, []);
 
-  const fetchLists = async () => {
+  const loadLists = async () => {
     try {
-      const res = await api.get<CustomList[]>("/CustomList");
+      const res = await api.get("/CustomList");
       setLists(res.data);
     } catch (err) {
-      console.error("Listeler çekilemedi", err);
+      console.error("Listeler yüklenemedi:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Yeni Liste Oluştur
-  const handleCreateList = async () => {
-    if (!newListName.trim()) return;
+  const handleAdd = async (listId: number) => {
+    setSavingId(listId);
     try {
-      await api.post("/CustomList", { name: newListName });
-      setNewListName("");
-      fetchLists(); // Listeleri yenile
-    } catch (err) {
-      alert("Liste oluşturulamadı.");
-    }
-  };
-
-  // Listeye Ekle / Çıkar
-  const toggleToList = async (listId: number) => {
-    // UI'da anlık güncelleme (Optimistic UI) - Beklemeden tik işaretini değiştir
-    setLists(prev => prev.map(l => {
-      if (l.id === listId) {
-        const exists = l.items.some(x => x.contentId === contentId);
-        if (exists) {
-          // Varsa çıkar
-          return { ...l, items: l.items.filter(x => x.contentId !== contentId) };
-        } else {
-          // Yoksa ekle
-          return { ...l, items: [...l.items, { contentId }] };
-        }
-      }
-      return l;
-    }));
-
-    // Arka planda sunucuya gönder
-    try {
-      await api.post("/CustomList/toggle-item", {
-        listId,
+      await api.post(`/CustomList/${listId}/add`, {
         contentId,
         type,
         title,
         imageUrl
       });
+
+      alert("📁 İçerik listeye eklendi!");
+      onClose();
+
     } catch (err) {
-      console.error("İşlem başarısız", err);
-      fetchLists(); // Hata olursa gerçeği geri yükle
+      console.error("Listeye ekleme hatası:", err);
+      alert("Bir hata oluştu.");
+    } finally {
+      setSavingId(null);
     }
   };
 
   return (
     <div style={{
-      position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-      background: "rgba(0,0,0,0.7)", zIndex: 1000,
-      display: "flex", alignItems: "center", justifyContent: "center"
-    }} onClick={onClose}>
-      
-      {/* Modal İçeriği */}
-      <div 
-        onClick={(e) => e.stopPropagation()} // İçeriye tıklayınca kapanmasın
-        style={{
-          background: "#1e293b", padding: "24px", borderRadius: "16px",
-          width: "400px", maxWidth: "90%", border: "1px solid #334155",
-          color: "white"
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-          <h3 style={{ margin: 0 }}>Listelerine Ekle</h3>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "20px" }}>✕</button>
-        </div>
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.7)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 9999
+    }}>
+      <div style={{
+        width: "420px",
+        background: "#1e293b",
+        padding: "24px",
+        borderRadius: "16px",
+        border: "1px solid rgba(255,255,255,0.1)",
+        color: "white",
+        boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+        animation: "fadeInScale 0.2s ease-out"
+      }}>
 
-        {/* Yeni Liste Oluşturma Inputu */}
-        <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-          <input 
-            value={newListName}
-            onChange={(e) => setNewListName(e.target.value)}
-            placeholder="Yeni liste adı..."
-            style={{ flex: 1, padding: "8px 12px", borderRadius: "8px", border: "1px solid #334155", background: "#0f172a", color: "white" }}
+        {/* Başlık */}
+        <h2 style={{
+          marginBottom: "20px",
+          fontSize: "1.5rem",
+          fontWeight: 700,
+          display: "flex",
+          alignItems: "center",
+          gap: "10px"
+        }}>
+          📂 Listeye Ekle
+        </h2>
+
+        {/* İçerik kartı */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          marginBottom: "20px",
+          background: "#0f172a",
+          padding: "12px",
+          borderRadius: "12px"
+        }}>
+          <img
+            src={imageUrl || "https://via.placeholder.com/80x120"}
+            alt={title}
+            style={{ width: "60px", height: "90px", borderRadius: "6px", objectFit: "cover" }}
           />
-          <button 
-            onClick={handleCreateList}
-            disabled={!newListName.trim()}
-            style={{ background: "#3b82f6", color: "white", border: "none", padding: "8px 16px", borderRadius: "8px", cursor: "pointer" }}
-          >
-            +
-          </button>
+          <div>
+            <div style={{ fontWeight: "bold" }}>{title}</div>
+            <div style={{ fontSize: "0.8rem", opacity: 0.6 }}>{type.toUpperCase()}</div>
+          </div>
         </div>
 
         {/* Listeler */}
-        <div style={{ maxHeight: "300px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "10px" }}>
-          {loading ? <div>Yükleniyor...</div> : lists.map(list => {
-            const isAdded = list.items.some(x => x.contentId === contentId);
-            return (
-              <div 
-                key={list.id} 
-                onClick={() => toggleToList(list.id)}
-                style={{ 
-                  display: "flex", alignItems: "center", gap: "12px", 
-                  padding: "10px", borderRadius: "8px", 
-                  background: isAdded ? "rgba(59, 130, 246, 0.1)" : "rgba(255,255,255,0.03)",
-                  border: isAdded ? "1px solid #3b82f6" : "1px solid transparent",
-                  cursor: "pointer"
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "20px" }}>Yükleniyor...</div>
+        ) : lists.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "20px", opacity: 0.7 }}>
+            Hiç özel listen yok.
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {lists.map(list => (
+              <button
+                key={list.id}
+                onClick={() => handleAdd(list.id)}
+                style={{
+                  background: savingId === list.id ? "#0ea5e9" : "#334155",
+                  padding: "12px",
+                  borderRadius: "10px",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  cursor: "pointer",
+                  color: "white",
+                  fontWeight: 600,
+                  textAlign: "left",
+                  transition: "all 0.2s"
                 }}
               >
-                <div style={{
-                  width: "20px", height: "20px", borderRadius: "4px",
-                  border: "2px solid #94a3b8",
-                  background: isAdded ? "#3b82f6" : "transparent",
-                  borderColor: isAdded ? "#3b82f6" : "#94a3b8",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "white", fontSize: "12px"
-                }}>
-                  {isAdded && "✓"}
-                </div>
-                <span style={{ fontWeight: 500 }}>{list.name}</span>
-                <span style={{ marginLeft: "auto", fontSize: "0.8rem", color: "#64748b" }}>{list.items.length} öğe</span>
-              </div>
-            );
-          })}
-        </div>
+                {savingId === list.id ? "Ekleniyor..." : `📁 ${list.name}`}
+              </button>
+            ))}
+          </div>
+        )}
 
+        {/* Kapat */}
+        <button
+          onClick={onClose}
+          style={{
+            marginTop: "20px",
+            background: "transparent",
+            color: "#94a3b8",
+            border: "none",
+            cursor: "pointer",
+            fontSize: "0.9rem",
+            textAlign: "center",
+            width: "100%"
+          }}
+        >
+          Kapat
+        </button>
       </div>
     </div>
   );

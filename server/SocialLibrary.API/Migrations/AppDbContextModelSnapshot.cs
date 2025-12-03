@@ -203,6 +203,8 @@ namespace SocialLibrary.API.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("Ratings");
                 });
 
@@ -237,6 +239,8 @@ namespace SocialLibrary.API.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("Reviews");
                 });
 
@@ -247,6 +251,12 @@ namespace SocialLibrary.API.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AvatarUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Bio")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -307,6 +317,8 @@ namespace SocialLibrary.API.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("UserContents");
                 });
 
@@ -321,9 +333,45 @@ namespace SocialLibrary.API.Migrations
                     b.Navigation("CustomList");
                 });
 
+            modelBuilder.Entity("SocialLibrary.API.Models.Rating", b =>
+                {
+                    b.HasOne("SocialLibrary.API.Models.User", null)
+                        .WithMany("Ratings")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SocialLibrary.API.Models.Review", b =>
+                {
+                    b.HasOne("SocialLibrary.API.Models.User", null)
+                        .WithMany("Reviews")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SocialLibrary.API.Models.UserContent", b =>
+                {
+                    b.HasOne("SocialLibrary.API.Models.User", null)
+                        .WithMany("UserContents")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SocialLibrary.API.Models.CustomList", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("SocialLibrary.API.Models.User", b =>
+                {
+                    b.Navigation("Ratings");
+
+                    b.Navigation("Reviews");
+
+                    b.Navigation("UserContents");
                 });
 #pragma warning restore 612, 618
         }

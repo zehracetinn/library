@@ -422,7 +422,7 @@ function StatusButton({ label, isActive, onClick }: { label: string; isActive: b
       style={{
         padding: "12px 20px",
         borderRadius: "10px",
-        border: isActive ? "1px solid #38bdf8" : "1px solidrgb(42, 54, 70)",
+        border: isActive ? "1px solid #38bdf8" : "1px solid #334155",
         background: isActive ? "rgba(56, 189, 248, 0.15)" : "transparent",
         color: isActive ? "#38bdf8" : "#94a3b8",
         fontWeight: 600,
