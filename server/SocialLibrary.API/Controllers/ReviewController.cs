@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using SocialLibrary.API.Data;
 using SocialLibrary.API.Models;
 using SocialLibrary.API.Services;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace SocialLibrary.API.Controllers;
 
@@ -106,6 +108,27 @@ public class ReviewsController : ControllerBase
 
         return Ok(review);
     }
+
+
+        [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateReview(int id, [FromBody] ReviewUpdateDto dto)
+    {
+        var userId = int.Parse(User.FindFirst("id")!.Value);
+
+        var review = await _db.Reviews.FindAsync(id);
+        if (review == null) return NotFound();
+
+        if (review.UserId != userId)
+            return Forbid(); // kendi yorumu değilse engelle
+
+        review.Text = dto.Text;
+        review.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(review);
+    }
+
 
     // Yorum sil (sadece sahibi)
     [HttpDelete("{id}")]

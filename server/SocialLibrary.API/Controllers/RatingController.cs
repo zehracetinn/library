@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using SocialLibrary.API.Data;
 using SocialLibrary.API.Models;
 using SocialLibrary.API.Services; // TmdbService için gerekli
+using Microsoft.EntityFrameworkCore;
+
 
 namespace SocialLibrary.API.Controllers;
 
@@ -112,6 +114,24 @@ public class RatingsController : ControllerBase
         await _db.SaveChangesAsync();
         return Ok();
     }
+
+
+        [HttpGet("user/{contentId}")]
+    public async Task<IActionResult> GetUserRating(string contentId, [FromQuery] string type)
+    {
+        var userId = int.Parse(User.FindFirst("id")!.Value);
+
+        var rating = await _db.Ratings
+            .FirstOrDefaultAsync(x => x.UserId == userId &&
+                                    x.ContentId == contentId &&
+                                    x.Type == type);
+
+        if (rating == null)
+            return Ok(new { score = 0 });
+
+        return Ok(new { score = rating.Score });
+    }
+
 
     // GET /api/Ratings/content/{contentId}?type=movie
     [HttpGet("content/{contentId}")]

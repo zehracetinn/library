@@ -8,19 +8,13 @@ const api = axios.create({
 });
 
 // --- REQUEST (İSTEK) INTERCEPTOR ---
-// Her istekten önce çalışır ve Token'ı ekler
 api.interceptors.request.use(
   (config) => {
-    // 1. Token'ı al
     const token = localStorage.getItem("token");
 
-    // Konsola yazdıralım ki Token gerçekten var mı görelim (DEBUG)
-    // Eğer null yazıyorsa Login sayfasında kaydetme sorunu vardır.
-    // console.log("Giden İstek:", config.url, "| Token Durumu:", token ? "Var" : "YOK");
-
-    // Login ve Register hariç diğerlerine token ekle
+    // Token varsa Header'a ekle
     if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     return config;
@@ -31,19 +25,23 @@ api.interceptors.request.use(
 );
 
 // --- RESPONSE (CEVAP) INTERCEPTOR ---
-// Backend'den hata dönerse burası yakalar
 api.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
-    // Eğer Backend "401 Unauthorized" (Yetkisiz) derse:
+    // Eğer Backend "401 Unauthorized" dönerse (Token geçersiz/yok):
     if (error.response && error.response.status === 401) {
-      console.error("⛔ Yetkisiz Erişim! Token geçersiz veya süresi dolmuş.");
-      
-      // İstersen burada kullanıcıyı otomatik çıkış yaptırabilirsin:
-      // localStorage.removeItem("token");
-      // window.location.href = "/login"; // Login sayfasına yönlendir
+      console.error("⛔ Token geçersiz! Çıkış yapılıyor...");
+
+      // 1. Token'ı sil (ki hatalı token kalmasın)
+      localStorage.removeItem("token");
+
+      // 2. Kullanıcıyı zorla Login sayfasına gönder
+      // (Eğer zaten login sayfasındaysa döngüye girmemesi için kontrol edebilirsin ama genelde gerekmez)
+      if (window.location.pathname !== "/login") {
+         window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   }

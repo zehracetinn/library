@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using SocialLibrary.API.Data;
 using SocialLibrary.API.Models;
 using SocialLibrary.API.Services;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace SocialLibrary.API.Controllers;
 
@@ -101,6 +103,21 @@ public class UserContentController : ControllerBase
 
         await _db.SaveChangesAsync();
         return Ok(item);
+    }
+    [HttpGet("status")]
+    public async Task<IActionResult> GetStatus([FromQuery] string contentId, [FromQuery] string type)
+    {
+        var userId = int.Parse(User.FindFirst("id")!.Value);
+
+        var record = await _db.UserContents
+            .FirstOrDefaultAsync(x => x.UserId == userId && 
+                                    x.ContentId == contentId &&
+                                    x.Type == type);
+
+        if (record == null)
+            return Ok(new { status = "none" });
+
+        return Ok(new { status = record.Status });
     }
 
     // FAVORİLERİ LİSTELEME

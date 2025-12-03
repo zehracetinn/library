@@ -3,21 +3,30 @@ import api from "../api/axiosClient";
 import ActivityCard from "../components/ActivityCard";
 import { useNavigate } from "react-router-dom";
 
-// ----- Activity Type -----
+// ✅ GÜNCELLEME: Interface, ActivityCard'ın beklediği yapıya uygun hale getirildi
 interface Activity {
   id: number;
-  userId: number;
-  username: string;
-  avatarUrl?: string;
   actionType: "rating" | "review" | "status";
-  title: string;
-  imageUrl?: string;
-  score?: number;
-  snippet?: string;
-  status?: string;
   createdAt: string;
+  
+  // İçerik (Düz değil, obje içinde)
+  content: {
+    id: string;
+    type: string;
+    title: string;
+    imageUrl?: string;
+  };
+  
+  // Kullanıcı (Düz değil, obje içinde)
+  user: {
+    id: number;
+    username: string;
+  };
+
+  score?: number;
+  status?: string;
+  snippet?: string;
 }
-// --------------------------
 
 export default function Feed() {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -26,9 +35,9 @@ export default function Feed() {
 
   const loadFeed = async () => {
     try {
-      const res = await api.get("/Feed?page=1&pageSize=20");
-      const data = res.data.items ?? res.data;
-      setActivities(data);
+      const res = await api.get("/Feed");
+      // Backend'deki son değişiklikle veriyi direkt liste olarak dönüyoruz
+      setActivities(res.data);
     } catch (err) {
       console.log("FEED ERROR:", err);
     } finally {
@@ -44,13 +53,16 @@ export default function Feed() {
     return (
       <div
         style={{
-          padding: 20,
+          minHeight: "100vh",
+          background: "#020617",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           color: "white",
-          textAlign: "center",
           fontSize: "20px",
         }}
       >
-        Loading...
+        Yükleniyor...
       </div>
     );
   }
@@ -63,13 +75,13 @@ export default function Feed() {
         display: "flex",
         justifyContent: "center",
         paddingTop: "40px",
-        background: "linear-gradient(180deg, #0a0f28, #0f1335)",
+        background: "linear-gradient(180deg, #0a0f28, #0f1335)", // Senin istediğin renkler
       }}
     >
       <div
         style={{
           width: "100%",
-          maxWidth: "620px",
+          maxWidth: "720px", // Kart genişliğiyle uyumlu olsun diye biraz artırdım
           padding: "0 20px",
           position: "relative",
         }}
@@ -79,7 +91,8 @@ export default function Feed() {
           style={{
             position: "absolute",
             right: 20,
-            top: -10,
+            top: 0, // Biraz daha aşağı aldım, başlık ile çakışmasın
+            zIndex: 10
           }}
         >
           <button
@@ -93,6 +106,7 @@ export default function Feed() {
               cursor: "pointer",
               fontWeight: 600,
               boxShadow: "0 4px 15px rgba(99,102,241,0.4)",
+              display: "flex", alignItems: "center", gap: "8px"
             }}
           >
             🔍 Keşfet
@@ -102,21 +116,28 @@ export default function Feed() {
         <h2
           style={{
             color: "white",
-            marginBottom: 20,
-            fontSize: "26px",
-            fontWeight: 600,
+            marginBottom: 30,
+            fontSize: "28px",
+            fontWeight: 700,
+            borderBottom: "1px solid rgba(255,255,255,0.1)",
+            paddingBottom: "15px"
           }}
         >
-          Feed
+          Sosyal Akış
         </h2>
 
         {activities.length === 0 && (
-          <div style={{ color: "white" }}>Henüz aktivite yok.</div>
+          <div style={{ color: "#94a3b8", textAlign: "center", marginTop: "40px", background: "rgba(255,255,255,0.05)", padding: "20px", borderRadius: "12px" }}>
+            Henüz aktivite yok. "Keşfet" butonuna basıp ilk içeriğini puanla!
+          </div>
         )}
 
-        {activities.map((a: Activity) => (
+        {activities.map((a) => (
           <ActivityCard key={a.id} activity={a} />
         ))}
+        
+        {/* Alt boşluk */}
+        <div style={{ height: "50px" }}></div>
       </div>
     </div>
   );

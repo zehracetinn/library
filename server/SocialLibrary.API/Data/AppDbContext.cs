@@ -15,6 +15,11 @@ public class AppDbContext : DbContext
     public DbSet<Content> Contents { get; set; }
 
 
+    // Mevcut DbSet'lerin altına ekle:
+    public DbSet<CustomList> CustomLists { get; set; }
+    public DbSet<CustomListItem> CustomListItems { get; set; }
+
+
 
     public DbSet<UserContent> UserContents => Set<UserContent>();   // 🔥 BURADA OLMALI
 

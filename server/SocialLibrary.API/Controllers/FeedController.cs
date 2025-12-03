@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SocialLibrary.API.Data;
 using SocialLibrary.API.Models;
 
@@ -7,7 +8,6 @@ namespace SocialLibrary.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class FeedController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -17,37 +17,49 @@ public class FeedController : ControllerBase
         _db = db;
     }
 
-    // /api/Feed?page=1&pageSize=20
+    // GET: api/feed
     [HttpGet]
-    public IActionResult GetFeed([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    [AllowAnonymous] // Test aşamasında token derdi olmasın diye
+    public async Task<IActionResult> GetFeed([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
-        int userId = int.Parse(User.FindFirst("id")!.Value);
-
-        var followingIds = _db.Follows
-            .Where(f => f.FollowerId == userId)
-            .Select(f => f.FollowedId)
-            .ToList();
-
-        // Kendi aktivitelerini de görmek istersen:
-        followingIds.Add(userId);
-
+        // 1. Sorguyu Hazırla (Şimdilik Global Akış - Herkesi Göster)
+        // İlerde buraya .Where(a => followingIds.Contains(a.UserId)) ekleyerek filtreleyebilirsin.
         var query = _db.Activities
-            .Where(a => followingIds.Contains(a.UserId))
-            .OrderByDescending(a => a.CreatedAt);
+            .OrderByDescending(a => a.Id); // En yeniden eskiye
 
-        var total = query.Count();
-
-        var items = query
+        // 2. Frontend'in beklediği formata dönüştür (Projection)
+        var activities = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToList();
+            .Select(a => new 
+            {
+                a.Id,
+                a.ActionType, // "rating", "review", "status"
+                a.CreatedAt,
+                
+                // Frontend'deki ActivityCard.tsx bu yapıyı bekliyor:
+                Content = new {
+                    Id = a.ContentId,
+                    Type = a.Type,
+                    Title = a.Title,
+                    ImageUrl = a.ImageUrl
+                },
 
-        return Ok(new
-        {
-            total,
-            page,
-            pageSize,
-            items
-        });
+                // Kullanıcı ismini çekmek için:
+                User = _db.Users
+                    .Where(u => u.Id == a.UserId)
+                    .Select(u => new { u.Id, u.Username })
+                    .FirstOrDefault(),
+
+                // Detaylar
+                a.Score,
+                a.Status,
+                a.Snippet
+            })
+            .ToListAsync();
+
+        // Frontend şu an direkt liste beklediği için (res.data.map...),
+        // objeye sarmadan direkt listeyi dönüyoruz.
+        return Ok(activities);
     }
 }
