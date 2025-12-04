@@ -18,62 +18,64 @@ public class UserController : ControllerBase
         _db = db;
     }
 
-    // 1. PROFİL BİLGİLERİ + İSTATİSTİKLER + SON AKTİVİTELER
-    // GET: api/User/profile/{userId}
+    // 1. PROFİL GETİRME
     [HttpGet("profile/{userId}")]
-    [AllowAnonymous] // Giriş yapmayanlar da profil görebilsin
+    [AllowAnonymous]
     public async Task<IActionResult> GetProfile(int userId)
     {
-        // A. Kullanıcıyı Bul
         var user = await _db.Users.FindAsync(userId);
-        if (user == null) return NotFound("Kullanıcı bulunamadı.");
+        if (user == null)
+            return NotFound("Kullanıcı bulunamadı.");
 
-        // B. İstatistikler (Takipçi / Takip Edilen)
-        var followersCount = await _db.Follows.CountAsync(f => f.FollowedId == userId);
+        var followersCount = await _db.Follows.CountAsync(f => f.FollowingId == userId);
         var followingCount = await _db.Follows.CountAsync(f => f.FollowerId == userId);
 
-        // C. Ziyaretçi Kim? (Ben miyim? Takip ediyor muyum?)
+        var currentUserIdStr =
+            User.FindFirst("id")?.Value ??
+            User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
         bool isSelf = false;
         bool isFollowing = false;
-        
-        // Token varsa, giriş yapan kullanıcıyı kontrol et
-        var currentUserIdStr = User.FindFirst("id")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
         if (currentUserIdStr != null)
         {
             int currentId = int.Parse(currentUserIdStr);
-            isSelf = (currentId == userId);
-            
+            isSelf = currentId == userId;
+
             if (!isSelf)
             {
-                isFollowing = await _db.Follows.AnyAsync(f => f.FollowerId == currentId && f.FollowedId == userId);
+                isFollowing = await _db.Follows.AnyAsync(f =>
+                    f.FollowerId == currentId &&
+                    f.FollowingId == userId
+                );
             }
         }
 
-        // D. Bu Kullanıcının Son Aktiviteleri (Profile özel feed)
         var activities = await _db.Activities
             .Where(a => a.UserId == userId)
+            .Include(a => a.User)
             .OrderByDescending(a => a.CreatedAt)
-            .Take(10) // Profilde sadece son 10 hareketi gösterelim
-            .Select(a => new 
+            .Take(10)
+            .Select(a => new
             {
                 a.Id,
                 a.ActionType,
                 a.CreatedAt,
-                Content = new {
+                Content = new
+                {
                     Id = a.ContentId,
                     Type = a.Type,
                     Title = a.Title,
                     ImageUrl = a.ImageUrl
                 },
-                User = new { user.Id, user.Username }, 
+                User = new { a.User.Id, a.User.Username },
                 a.Score,
                 a.Status,
                 a.Snippet
             })
             .ToListAsync();
 
-        // E. Hepsini Tek Pakette Dön
-        return Ok(new 
+        return Ok(new
         {
             User = new { user.Id, user.Username, user.Bio, user.AvatarUrl },
             Stats = new { followersCount, followingCount },
@@ -83,19 +85,16 @@ public class UserController : ControllerBase
         });
     }
 
-    // 2. KÜTÜPHANE İÇERİĞİ (Sekmeler İçin)
-    // GET: api/User/library/{userId}
+    // 2. KÜTÜPHANE GETİRME
     [HttpGet("library/{userId}")]
     [AllowAnonymous]
     public async Task<IActionResult> GetLibrary(int userId)
     {
-        // Kullanıcının tüm içeriklerini çek
         var allItems = await _db.UserContents
             .Where(uc => uc.UserId == userId)
             .OrderByDescending(uc => uc.SavedAt)
             .ToListAsync();
 
-        // Frontend'in kolay kullanması için grupluyoruz
         return Ok(new
         {
             watched = allItems.Where(x => x.Status == "watched"),
@@ -105,18 +104,19 @@ public class UserController : ControllerBase
         });
     }
 
-    // 3. PROFİL DÜZENLEME (Bio / Avatar)
-    // PUT: api/User/update
+    // 3. PROFİL GÜNCELLEME
     [HttpPut("update")]
     [Authorize]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
     {
-        var userId = int.Parse(User.FindFirst("id")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-        var user = await _db.Users.FindAsync(userId);
-        
-        if (user == null) return NotFound();
+        var userId =
+            int.Parse(User.FindFirst("id")?.Value ??
+                      User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-        // Sadece dolu gelen alanları güncelle
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null)
+            return NotFound();
+
         if (dto.Bio != null) user.Bio = dto.Bio;
         if (dto.AvatarUrl != null) user.AvatarUrl = dto.AvatarUrl;
 
@@ -125,8 +125,7 @@ public class UserController : ControllerBase
     }
 }
 
-// Veri Transfer Modeli
-public class UpdateProfileDto 
+public class UpdateProfileDto
 {
     public string? Bio { get; set; }
     public string? AvatarUrl { get; set; }

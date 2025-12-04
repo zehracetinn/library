@@ -2,12 +2,14 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword"; // 🔥 EKLENDİ
 import Feed from "./pages/Feed";
 import Search from "./pages/Search";
 import Profile from "./pages/Profile";
 import ContentDetail from "./pages/ContentDetail";
 import Discover from "./pages/Discover";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ResetPassword from "./pages/ResetPassword";
 
 export default function App() {
   return (
@@ -17,6 +19,12 @@ export default function App() {
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+        {/* 🔥 Şifremi Unuttum */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+
         <Route path="/discover" element={<Discover />} />
 
         {/* Protected Routes */}
@@ -29,7 +37,7 @@ export default function App() {
           }
         />
 
-        {/* Root → feed */}
+        {/* Root → /feed */}
         <Route path="/" element={<Navigate to="/feed" />} />
 
         <Route

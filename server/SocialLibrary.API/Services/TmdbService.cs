@@ -1,163 +1,146 @@
-using Newtonsoft.Json;
+using System.Text.Json;
 using SocialLibrary.API.Models;
-using System.Net.Http.Headers;
 
 namespace SocialLibrary.API.Services;
 
 public class TmdbService
 {
-    private readonly HttpClient _httpClient;
+    private readonly HttpClient _http;
     private readonly string _apiKey;
-    private readonly string _readAccessToken;
+    private const string BaseUrl = "https://api.themoviedb.org/3";
 
-    public TmdbService(IConfiguration config, HttpClient httpClient)
+    public TmdbService(HttpClient http, IConfiguration config)
     {
-        _httpClient = httpClient;
-
-        _apiKey = config["Tmdb:ApiKey"]
-                  ?? throw new InvalidOperationException("Tmdb:ApiKey appsettings.json içinde tanımlı değil.");
-
-        _readAccessToken = config["Tmdb:ReadAccessToken"]
-                  ?? throw new InvalidOperationException("Tmdb:ReadAccessToken appsettings.json içinde tanımlı değil.");
-
-        // TMDB v4 için Bearer token
-        if (_httpClient.DefaultRequestHeaders.Authorization == null)
-        {
-            _httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", _readAccessToken);
-        }
-    }
-
-    // Ortak GET helper
-    private async Task<dynamic?> GetAsync(string url)
-    {
-        var json = await _httpClient.GetStringAsync(url);
-        return JsonConvert.DeserializeObject(json);
+        _http = http;
+        // Config'den okumaya çalış, yoksa hardcoded fallback kullan (Hata almamak için)
+        _apiKey = config["Tmdb:ApiKey"] ?? "d39ac8932db698305eb5520a06282869";
     }
 
     // =====================================================================
-    // 1) ARAMA  (DÜZELTİLDİ: Metot adı SearchContentListAsync yapıldı)
+    // 1) ARAMA 
     // =====================================================================
     public async Task<List<Content>> SearchContentListAsync(string query)
     {
-        var url = $"https://api.themoviedb.org/3/search/movie?api_key={_apiKey}&query={Uri.EscapeDataString(query)}";
+        var url = $"{BaseUrl}/search/movie?api_key={_apiKey}&language=tr-TR&query={Uri.EscapeDataString(query)}";
+        var res = await _http.GetStringAsync(url);
+        using var doc = JsonDocument.Parse(res);
         
-        // Null kontrolü ile güvenli hale getirildi
-        dynamic? data = await GetAsync(url);
-        var results = new List<Content>();
-
-        if (data == null || data.results == null)
-            return results;
-
-        foreach (var item in data.results)
+        var list = new List<Content>();
+        if (doc.RootElement.TryGetProperty("results", out var results))
         {
-            results.Add(new Content
+            foreach (var item in results.EnumerateArray())
             {
-                Id = item.id.ToString(),
-                Title = (string?)item.title ?? "",
-                Description = (string?)item.overview ?? "",
-                Year = ((string?)item.release_date)?.Split('-')[0],
-                ImageUrl = item.poster_path != null
-                    ? $"https://image.tmdb.org/t/p/w500{item.poster_path}"
-                    : null
-            });
+                list.Add(MapToContent(item));
+            }
         }
-
-        return results;
+        return list;
     }
 
     // =====================================================================
     // 2) DETAY
     // =====================================================================
-    public async Task<ContentDetail?> GetContentDetailsAsync(string id)
+    public async Task<ContentDetail> GetContentDetailsAsync(string id)
     {
-        var url = $"https://api.themoviedb.org/3/movie/{id}?api_key={_apiKey}&language=tr-TR";
-
-        dynamic? data = await GetAsync(url);
+        // append_to_response=credits sayesinde Yönetmen bilgisini de tek seferde çekiyoruz
+        var url = $"{BaseUrl}/movie/{id}?api_key={_apiKey}&language=tr-TR&append_to_response=credits";
         
-        if (data == null) return null;
-
-        string genre = "";
-
-        if (data.genres != null)
+        try 
         {
-            foreach (var g in data.genres)
-                genre += (string)g.name + ", ";
+            var res = await _http.GetStringAsync(url);
+            using var doc = JsonDocument.Parse(res);
+            var root = doc.RootElement;
 
-            if (genre.EndsWith(", "))
-                genre = genre[..^2];
+            return new ContentDetail
+            {
+                Id = root.GetProperty("id").ToString(),
+                Title = root.GetProperty("title").GetString() ?? "",
+                Description = root.GetProperty("overview").GetString() ?? "",
+                // Poster kontrolü
+                ImageUrl = root.TryGetProperty("poster_path", out var p) && p.GetString() != null 
+                    ? $"https://image.tmdb.org/t/p/w500{p.GetString()}" 
+                    : null,
+                // Yıl kontrolü (YYYY-MM-DD formatından sadece yılı al)
+                Year = root.TryGetProperty("release_date", out var d) && d.GetString()?.Length >= 4 
+                    ? d.GetString()![..4] 
+                    : "",
+                // Yönetmen ve Türleri al
+                Director = GetDirector(root),
+                Genre = GetGenres(root),
+                Rating = root.TryGetProperty("vote_average", out var v) ? v.GetDouble() : 0
+            };
         }
-
-        return new ContentDetail
+        catch
         {
-            Id = id,
-            Title = (string?)data.title ?? "",
-            Description = (string?)data.overview ?? "",
-            Genre = genre,
-            Rating = (double?)data.vote_average ?? 0,
-            ImageUrl = data.poster_path != null
-                ? $"https://image.tmdb.org/t/p/w500{data.poster_path}"
-                : null
+            // Hata durumunda boş veya null dönebiliriz, şimdilik basit tutalım
+            return new ContentDetail { Id = id, Title = "Bulunamadı" };
+        }
+    }
+
+    // =====================================================================
+    // 3) POPÜLER FİLMLER (DiscoverController İçin)
+    // =====================================================================
+    public async Task<List<Content>> GetPopularMoviesAsync()
+    {
+        var url = $"{BaseUrl}/movie/popular?api_key={_apiKey}&language=tr-TR&page=1";
+        var res = await _http.GetStringAsync(url);
+        using var doc = JsonDocument.Parse(res);
+
+        var list = new List<Content>();
+        if (doc.RootElement.TryGetProperty("results", out var results))
+        {
+            foreach (var item in results.EnumerateArray())
+            {
+                list.Add(MapToContent(item));
+            }
+        }
+        return list;
+    }
+
+    // --- Yardımcı Metodlar (Parsing) ---
+
+    // JSON'dan Content nesnesi oluşturur
+    private Content MapToContent(JsonElement item)
+    {
+        return new Content
+        {
+            Id = item.GetProperty("id").ToString(),
+            Title = item.GetProperty("title").GetString() ?? "",
+            ImageUrl = item.TryGetProperty("poster_path", out var p) && p.GetString() != null
+                ? $"https://image.tmdb.org/t/p/w500{p.GetString()}"
+                : null,
+            Description = item.TryGetProperty("overview", out var o) ? o.GetString() : "",
+            Type = "movie" // ✅ Frontend'in link oluşturması için bu alan zorunlu
         };
     }
 
-    // =====================================================================
-    // 3) EN YÜKSEK PUANLILAR
-    // =====================================================================
-    public async Task<List<Content>> GetTopRatedAsync()
+    // Credits içinden Yönetmeni bulur
+    private string GetDirector(JsonElement root)
     {
-        var url = $"https://api.themoviedb.org/3/movie/top_rated?api_key={_apiKey}&language=tr-TR&page=1";
-
-        dynamic? data = await GetAsync(url);
-        var contentList = new List<Content>();
-
-        if (data != null && data.results != null)
+        if (root.TryGetProperty("credits", out var credits) && credits.TryGetProperty("crew", out var crew))
         {
-            foreach (var item in data.results)
+            foreach (var person in crew.EnumerateArray())
             {
-                contentList.Add(new Content
+                if (person.TryGetProperty("job", out var job) && job.GetString() == "Director")
                 {
-                    Id = item.id.ToString(),
-                    Title = (string?)item.title ?? "",
-                    Description = (string?)item.overview ?? "",
-                    Year = ((string?)item.release_date)?.Split('-')[0],
-                    ImageUrl = item.poster_path != null
-                        ? $"https://image.tmdb.org/t/p/w500{item.poster_path}"
-                        : null
-                });
+                    return person.GetProperty("name").GetString() ?? "";
+                }
             }
         }
-
-        return contentList;
+        return "";
     }
 
-    // =====================================================================
-    // 4) EN POPÜLERLER
-    // =====================================================================
-    public async Task<List<Content>> GetPopularAsync()
+    // Türleri virgülle ayrılmış string yapar
+    private string GetGenres(JsonElement root)
     {
-        var url = $"https://api.themoviedb.org/3/movie/popular?api_key={_apiKey}&language=tr-TR&page=1";
-
-        dynamic? data = await GetAsync(url);
-        var contentList = new List<Content>();
-
-        if (data != null && data.results != null)
+        if (root.TryGetProperty("genres", out var genres))
         {
-            foreach (var item in data.results)
+            var list = new List<string>();
+            foreach (var g in genres.EnumerateArray())
             {
-                contentList.Add(new Content
-                {
-                    Id = item.id.ToString(),
-                    Title = (string?)item.title ?? "",
-                    Description = (string?)item.overview ?? "",
-                    Year = ((string?)item.release_date)?.Split('-')[0],
-                    ImageUrl = item.poster_path != null
-                        ? $"https://image.tmdb.org/t/p/w500{item.poster_path}"
-                        : null
-                });
+                list.Add(g.GetProperty("name").GetString() ?? "");
             }
+            return string.Join(", ", list);
         }
-
-        return contentList;
+        return "";
     }
 }

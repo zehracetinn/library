@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SocialLibrary.API.Data;
@@ -11,9 +12,11 @@ using SocialLibrary.API.Data;
 namespace SocialLibrary.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251203225752_AddActivityLikesTable")]
+    partial class AddActivityLikesTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -193,17 +196,13 @@ namespace SocialLibrary.API.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("FollowedId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("FollowerId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("FollowingId")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("FollowerId");
-
-                    b.HasIndex("FollowingId");
 
                     b.ToTable("Follows");
                 });
@@ -296,12 +295,6 @@ namespace SocialLibrary.API.Migrations
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<int>("FollowersCount")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("FollowingCount")
-                        .HasColumnType("integer");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -405,25 +398,6 @@ namespace SocialLibrary.API.Migrations
                         .IsRequired();
 
                     b.Navigation("CustomList");
-                });
-
-            modelBuilder.Entity("SocialLibrary.API.Models.Follow", b =>
-                {
-                    b.HasOne("SocialLibrary.API.Models.User", "Follower")
-                        .WithMany()
-                        .HasForeignKey("FollowerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SocialLibrary.API.Models.User", "Following")
-                        .WithMany()
-                        .HasForeignKey("FollowingId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Follower");
-
-                    b.Navigation("Following");
                 });
 
             modelBuilder.Entity("SocialLibrary.API.Models.Rating", b =>

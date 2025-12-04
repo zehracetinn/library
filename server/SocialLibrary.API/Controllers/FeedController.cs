@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SocialLibrary.API.Data;
-using SocialLibrary.API.Models;
 
 namespace SocialLibrary.API.Controllers;
 
@@ -17,49 +16,83 @@ public class FeedController : ControllerBase
         _db = db;
     }
 
-    // GET: api/feed
+    // GET: api/feed?page=1&pageSize=20
     [HttpGet]
-    [AllowAnonymous] // Test aşamasında token derdi olmasın diye
+    [Authorize]  // Feed yalnızca giriş yapan kullanıcıya görünür
     public async Task<IActionResult> GetFeed([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
-        // 1. Sorguyu Hazırla (Şimdilik Global Akış - Herkesi Göster)
-        // İlerde buraya .Where(a => followingIds.Contains(a.UserId)) ekleyerek filtreleyebilirsin.
-        var query = _db.Activities
-            .OrderByDescending(a => a.Id); // En yeniden eskiye
+        int userId = int.Parse(User.FindFirst("id")!.Value);
 
-        // 2. Frontend'in beklediği formata dönüştür (Projection)
+        // QUERY: Activity + User bilgisi
+        var query = _db.Activities
+            .Include(a => a.User)
+            .OrderByDescending(a => a.CreatedAt);
+
+        // SAYFALANDIRMA
+        var totalCount = await query.CountAsync();
+
         var activities = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(a => new 
+            .Select(a => new
             {
-                a.Id,
-                a.ActionType, // "rating", "review", "status"
-                a.CreatedAt,
-                
-                // Frontend'deki ActivityCard.tsx bu yapıyı bekliyor:
-                Content = new {
-                    Id = a.ContentId,
-                    Type = a.Type,
-                    Title = a.Title,
-                    ImageUrl = a.ImageUrl
+                // ----------------------------------------------------
+                // 📌 Activity Temel Bilgileri
+                // ----------------------------------------------------
+                id = a.Id,
+                actionType = a.ActionType,
+                createdAt = a.CreatedAt,
+
+                // ----------------------------------------------------
+                // 📌 FE'nin beklediği USER objesi
+                // ----------------------------------------------------
+                user = new
+                {
+                    id = a.User.Id,
+                    username = a.User.Username,
+                    avatarUrl = a.User.AvatarUrl
                 },
 
-                // Kullanıcı ismini çekmek için:
-                User = _db.Users
-                    .Where(u => u.Id == a.UserId)
-                    .Select(u => new { u.Id, u.Username })
-                    .FirstOrDefault(),
+                // ----------------------------------------------------
+                // 📌 FE'nin beklediği CONTENT objesi
+                // ----------------------------------------------------
+                content = new
+                {
+                    id = a.ContentId,
+                    type = a.Type,
+                    title = a.Title,
+                    imageUrl = a.ImageUrl
+                },
 
-                // Detaylar
-                a.Score,
-                a.Status,
-                a.Snippet
+                // ----------------------------------------------------
+                // 📌 Aktiviteye ait diğer alanlar
+                // ----------------------------------------------------
+                score = a.Score,
+                status = a.Status,
+                snippet = a.Snippet,
+
+                // ----------------------------------------------------
+                // 📌 Beğeni Sayısı
+                // ----------------------------------------------------
+                likeCount = _db.ActivityLikes.Count(l => l.ActivityId == a.Id),
+
+                // ----------------------------------------------------
+                // 📌 Kullanıcı Beğenmiş mi?
+                // ----------------------------------------------------
+                likedByUser = _db.ActivityLikes.Any(l =>
+                    l.ActivityId == a.Id && l.UserId == userId)
             })
             .ToListAsync();
 
-        // Frontend şu an direkt liste beklediği için (res.data.map...),
-        // objeye sarmadan direkt listeyi dönüyoruz.
-        return Ok(activities);
+        // ----------------------------------------------------
+        // 📌 RESPONSE
+        // ----------------------------------------------------
+        return Ok(new
+        {
+            total = totalCount,
+            page,
+            pageSize,
+            items = activities
+        });
     }
 }

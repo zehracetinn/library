@@ -25,6 +25,7 @@ builder.Services.AddCors(options =>
         });
 });
 
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // DbContext
 builder.Services.AddDbContext<AppDbContext>(opt =>

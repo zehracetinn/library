@@ -133,9 +133,43 @@ export default function Profile() {
     }
   };
 
-  const handleFollowToggle = async () => {
-    alert("Takip sistemi yakında eklenecek!");
-  };
+// Parametre olarak userId alıyoruz (API'ye göndermek için)
+const handleFollow = async (userId: number) => { 
+  try {
+    // activity.user.id yerine parametreden gelen userId'yi kullanıyoruz
+    const response = await api.post(`/Follow/${userId}`);
+    alert(response.data.message); 
+  } catch (error) {
+    console.error("Follow error:", error);
+    alert("Bir hata oluştu.");
+  }
+};
+
+const handleFollowToggle = async () => {
+  try {
+    if (profile?.isFollowing) {
+      // Takipten çık
+      const response = await api.delete(`/Follow/${profile.user.id}`);
+      console.log(response); // Debugging: Server response
+      setProfile((prevProfile) => ({
+        ...prevProfile!,
+        isFollowing: false,
+      }));
+    } else {
+      // Takip et
+      const response = await api.post(`/Follow/${profile?.user.id}`);
+      console.log(response); // Debugging: Server response
+      setProfile((prevProfile) => ({
+        ...prevProfile!,
+        isFollowing: true,
+      }));
+    }
+  } catch (error) {
+    console.error("Takip işlemi hatası:", error);
+    alert("Takip işlemi başarısız.");
+  }
+};
+
 
   // --- LOADING EKRANI ---
   if (loading || !profile || !library) {

@@ -1,11 +1,15 @@
-namespace SocialLibrary.API.Models;
-
-public class Follow
+namespace SocialLibrary.API.Models
 {
-    public int Id { get; set; }
+    public class Follow
+    {
+        public int Id { get; set; }
 
-    public int FollowerId { get; set; }   // Takip eden
-    public int FollowedId { get; set; }   // Takip edilen
+        public int FollowerId { get; set; }
+        public User Follower { get; set; } = null!;
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public int FollowingId { get; set; }
+        public User Following { get; set; } = null!;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    }
 }

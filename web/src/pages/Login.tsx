@@ -1,34 +1,26 @@
 import { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import {
-  Box,
-  Button,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Box, Button, TextField, Typography } from "@mui/material";
 
 export default function Login() {
   const { login } = useContext(AuthContext)!;
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState<string>("");
 
- 
+  const navigate = useNavigate();
 
-const navigate = useNavigate();
-
-const handleLogin = async () => {
-  try {
-    setError("");
-    await login(email, password);
-    navigate("/feed");
-  } catch (err) {
-    setError("Email veya şifre hatalı!");
-  }
-};
-;
+  const handleLogin = async () => {
+    try {
+      setError("");
+      await login(email, password);
+      navigate("/feed");
+    } catch (err) {
+      setError("Email veya şifre hatalı!");
+    }
+  };
 
   return (
     <Box
@@ -50,12 +42,7 @@ const handleLogin = async () => {
           boxShadow: "0 0 40px rgba(0,0,0,0.2)",
         }}
       >
-        <Typography
-          variant="h4"
-          fontWeight={700}
-          textAlign="center"
-          mb={3}
-        >
+        <Typography variant="h4" fontWeight={700} textAlign="center" mb={3}>
           Login
         </Typography>
 
@@ -84,7 +71,7 @@ const handleLogin = async () => {
           sx={{ mb: 1 }}
         />
 
-        {/* Error message */}
+        {/* Error */}
         {error && (
           <Typography color="error" fontSize={14} mb={1}>
             {error}
@@ -105,6 +92,28 @@ const handleLogin = async () => {
         >
           LOGIN
         </Button>
+
+        {/* 🔥 Şifremi Unuttum */}
+        <Typography
+          mt={2}
+          fontSize={14}
+          color="primary"
+          sx={{ cursor: "pointer", textAlign: "center" }}
+          onClick={() => navigate("/forgot-password")}
+        >
+          Şifremi Unuttum?
+        </Typography>
+
+        {/* 🔥 Kayıt Ol */}
+        <Typography
+          mt={1}
+          fontSize={14}
+          color="primary"
+          sx={{ cursor: "pointer", textAlign: "center" }}
+          onClick={() => navigate("/register")}
+        >
+          Hesabın yok mu? Kayıt Ol
+        </Typography>
       </Box>
     </Box>
   );
