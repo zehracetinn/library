@@ -34,12 +34,15 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Giriş yapan kullanıcının ID'sini al (Login sırasında localStorage'a kaydettiğini varsayıyoruz)
+  // Eğer Context API kullanıyorsan oradan da çekebilirsin.
+  const currentUserId = localStorage.getItem("userId"); 
+
   const loadFeed = async () => {
     try {
       const res = await api.get("/feed");
       console.log("FEED RESPONSE:", res.data);
 
-      // ✔ Backend {"total","page","pageSize","items"} döndürüyor
       if (res.data && Array.isArray(res.data.items)) {
         setActivities(res.data.items);
       } else {
@@ -57,6 +60,17 @@ export default function Feed() {
   useEffect(() => {
     loadFeed();
   }, []);
+
+  // Profil sayfasına gitme fonksiyonu
+  const handleGoToProfile = () => {
+    if (currentUserId) {
+      navigate(`/profile/${currentUserId}`);
+    } else {
+      // ID bulunamazsa login'e atabilirsin veya uyarı verebilirsin
+      console.warn("Kullanıcı ID bulunamadı, lütfen tekrar giriş yapın.");
+      navigate("/login"); 
+    }
+  };
 
   if (loading) {
     return (
@@ -79,8 +93,32 @@ export default function Feed() {
     <div style={{ minHeight: "100vh", background: "#020617", padding: "40px 20px" }}>
       <div style={{ maxWidth: "720px", margin: "0 auto", position: "relative" }}>
         
-        {/* Keşfet Butonu */}
-        <div style={{ position: "absolute", right: 0, top: 0, zIndex: 10 }}>
+        {/* --- BUTON GRUBU (SAĞ ÜST KÖŞE) --- */}
+        <div style={{ position: "absolute", right: 0, top: 0, zIndex: 10, display: "flex", gap: "10px" }}>
+          
+          {/* 1. Profilim Butonu (YENİ EKLENDİ) */}
+          <button
+            onClick={handleGoToProfile}
+            style={{
+              background: "rgba(30, 41, 59, 0.8)", // Daha koyu, şeffaf bir arka plan
+              border: "1px solid rgba(255,255,255,0.2)",
+              padding: "10px 20px",
+              borderRadius: "12px",
+              color: "white",
+              cursor: "pointer",
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              transition: "all 0.2s"
+            }}
+            onMouseOver={(e) => e.currentTarget.style.background = "rgba(30, 41, 59, 1)"}
+            onMouseOut={(e) => e.currentTarget.style.background = "rgba(30, 41, 59, 0.8)"}
+          >
+            👤 Profilim
+          </button>
+
+          {/* 2. Keşfet Butonu (MEVCUT) */}
           <button
             onClick={() => navigate("/discover")}
             style={{
@@ -100,6 +138,7 @@ export default function Feed() {
             🔍 Keşfet
           </button>
         </div>
+        {/* ---------------------------------- */}
 
         <h2
           style={{

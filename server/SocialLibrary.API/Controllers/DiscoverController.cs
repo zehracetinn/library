@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using SocialLibrary.API.Services; // TmdbService için bunu ekledik
+using SocialLibrary.API.Services;
 using SocialLibrary.API.Models;
 
 namespace SocialLibrary.API.Controllers;
@@ -10,7 +10,6 @@ public class DiscoverController : ControllerBase
 {
     private readonly TmdbService _tmdbService;
 
-    // TmdbService'i buraya "Inject" ettik. Artık kullanabiliriz.
     public DiscoverController(TmdbService tmdbService)
     {
         _tmdbService = tmdbService;
@@ -20,14 +19,11 @@ public class DiscoverController : ControllerBase
     [HttpGet("top-rated")]
     public async Task<IActionResult> GetTopRated([FromQuery] string type = "movie")
     {
-        // Eğer film isteniyorsa TMDB'den çek
         if (type == "movie")
         {
             var results = await _tmdbService.GetTopRatedAsync();
             return Ok(new { items = results });
         }
-
-        // Kitap kısmı için ilerde GoogleBooksService eklersin
         return Ok(new { items = new List<object>() });
     }
 
@@ -35,13 +31,22 @@ public class DiscoverController : ControllerBase
     [HttpGet("most-popular")]
     public async Task<IActionResult> GetMostPopular([FromQuery] string type = "movie")
     {
-        // Eğer film isteniyorsa TMDB'den çek
         if (type == "movie")
         {
             var results = await _tmdbService.GetPopularAsync();
             return Ok(new { items = results });
         }
-
         return Ok(new { items = new List<object>() });
+    }
+
+    // --- YENİ EKLENEN FİLTRELEME KAPISI ---
+    // Bu metod olmadan Frontend filtre gönderse bile Backend cevap veremez.
+    // Örnek İstek: /api/Discover/search?query=Batman&year=2008&rating=8
+    [HttpGet("search")]
+    public async Task<IActionResult> Search([FromQuery] string? query, [FromQuery] string? genre, [FromQuery] int? year, [FromQuery] double? rating)
+    {
+        // TmdbService içindeki gelişmiş arama metodunu çağırıyoruz
+        var results = await _tmdbService.SearchMoviesAsync(query ?? "", genre, year, rating);
+        return Ok(new { items = results });
     }
 }
