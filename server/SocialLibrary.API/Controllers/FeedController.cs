@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SocialLibrary.API.Data;
+using SocialLibrary.API.Models;
+using Microsoft.AspNetCore.Authorization; // [Authorize] kullanıldığı için bu gerekli
 
 namespace SocialLibrary.API.Controllers;
 
@@ -19,8 +20,14 @@ public class FeedController : ControllerBase
     // GET: api/feed?page=1&pageSize=20
     [HttpGet]
     [Authorize]  // Feed yalnızca giriş yapan kullanıcıya görünür
-    public async Task<IActionResult> GetFeed([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public async Task<IActionResult> GetFeed([FromQuery] int page = 1, [FromQuery] int pageSize = 10) // Sayfa boyutunu 10'a düşürdüm
     {
+        // Token'dan ID'yi alıyoruz (Authorize olduğu için null gelmez)
+        // Eğer User.FindFirst("id") null gelirse, uygulamanın Auth mekanizmasında sorun vardır, ancak kodun devamı için varsayıyoruz.
+        if (User.FindFirst("id") == null)
+        {
+            return Unauthorized("Kullanıcı ID'si token'da bulunamadı.");
+        }
         int userId = int.Parse(User.FindFirst("id")!.Value);
 
         // QUERY: Activity + User bilgisi
@@ -72,12 +79,12 @@ public class FeedController : ControllerBase
                 snippet = a.Snippet,
 
                 // ----------------------------------------------------
-                // 📌 Beğeni Sayısı
+                // ✅ Beğeni Sayısı (SQL'e çevrilebilir alt sorgu)
                 // ----------------------------------------------------
                 likeCount = _db.ActivityLikes.Count(l => l.ActivityId == a.Id),
 
                 // ----------------------------------------------------
-                // 📌 Kullanıcı Beğenmiş mi?
+                // ✅ Kullanıcı Beğenmiş mi? (SQL'e çevrilebilir alt sorgu)
                 // ----------------------------------------------------
                 likedByUser = _db.ActivityLikes.Any(l =>
                     l.ActivityId == a.Id && l.UserId == userId)
