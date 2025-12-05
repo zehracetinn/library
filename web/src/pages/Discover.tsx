@@ -140,80 +140,121 @@ export default function Discover() {
     outline: "none"
   };
 
+  if (loading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          // Loading ekranı için de aynı arka planı kullanıyoruz
+          backgroundImage: 'url("https://assets.nflxext.com/ffe/siteui/vlv3/f841d4c7-10e1-40af-bcae-07a3f8dc141a/f6d7434e-d6de-4185-a6d4-c77a2d08737b/US-en-20220502-popsignuptwoweeks-perspective_alpha_website_medium.jpg")',
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          position: "relative"
+        }}
+      >
+        {/* Loading için koyu overlay */}
+        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.85)" }} />
+        <div className="animate-spin h-10 w-10 border-4 border-indigo-500 rounded-full border-t-transparent z-10"></div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ width: "100%", minHeight: "100vh", paddingBottom: 50 }}>
+    <div style={{ 
+        width: "100%", 
+        minHeight: "100vh", 
+        paddingBottom: 50,
+        // --- ARKA PLAN AYARLARI ---
+        backgroundImage: 'url("https://assets.nflxext.com/ffe/siteui/vlv3/f841d4c7-10e1-40af-bcae-07a3f8dc141a/f6d7434e-d6de-4185-a6d4-c77a2d08737b/US-en-20220502-popsignuptwoweeks-perspective_alpha_website_medium.jpg")',
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed", // Resim scroll yaparken sabit kalsın
+        position: "relative"
+    }}>
+      {/* Overlay (Karanlık Perde) */}
+      <div 
+        style={{
+          position: "fixed",
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.85)", 
+          zIndex: 0,
+          pointerEvents: "none"
+        }} 
+      />
+
       <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; } .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
 
-      {/* HEADER */}
-      <div style={{ textAlign: "center", paddingTop: 40, marginBottom: 40, paddingLeft: 20, paddingRight: 20 }}>
-        <h1 style={{ fontSize: "36px", fontWeight: "800", marginBottom: "20px", background: "linear-gradient(to right, #fff, #94a3b8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-          Keşfetmeye Başla
-        </h1>
-        
-        {/* Arama Formu */}
-        <form onSubmit={handleSearch} style={{ maxWidth: 800, margin: "0 auto", display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+      {/* İÇERİK WRAPPER (Z-INDEX 1) */}
+      <div style={{ position: "relative", zIndex: 1 }}>
+
+        {/* HEADER */}
+        <div style={{ textAlign: "center", paddingTop: 40, marginBottom: 40, paddingLeft: 20, paddingRight: 20 }}>
+          <h1 style={{ fontSize: "36px", fontWeight: "800", marginBottom: "20px", background: "linear-gradient(to right, #fff, #94a3b8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            Keşfetmeye Başla
+          </h1>
           
-          {/* Tip Seçimi */}
-          <select 
-            value={searchType} onChange={(e) => setSearchType(e.target.value as ContentType)}
-            style={inputStyle}
-          >
-            <option value="movie">Film</option>
-            <option value="book">Kitap</option>
-          </select>
+          {/* Arama Formu */}
+          <form onSubmit={handleSearch} style={{ maxWidth: 800, margin: "0 auto", display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+            
+            {/* Tip Seçimi */}
+            <select 
+              value={searchType} onChange={(e) => setSearchType(e.target.value as ContentType)}
+              style={inputStyle}
+            >
+              <option value="movie">Film</option>
+              <option value="book">Kitap</option>
+            </select>
 
-          {/* Metin Arama */}
-          <input 
-            value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Film adı..."
-            style={{ ...inputStyle, flex: "1 1 200px" }}
-          />
+            {/* Metin Arama */}
+            <input 
+              value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Film adı..."
+              style={{ ...inputStyle, flex: "1 1 200px" }}
+            />
 
-          {/* Yıl Filtresi (Yeni) */}
-          <input 
-            type="number"
-            value={filterYear} 
-            onChange={(e) => setFilterYear(e.target.value)}
-            placeholder="Yıl (Örn: 2023)"
-            style={{ ...inputStyle, width: "120px" }}
-          />
+            {/* Yıl Filtresi (Yeni) */}
+            <input 
+              type="number"
+              value={filterYear} 
+              onChange={(e) => setFilterYear(e.target.value)}
+              placeholder="Yıl (Örn: 2023)"
+              style={{ ...inputStyle, width: "120px" }}
+            />
 
-          {/* Puan Filtresi (Yeni) */}
-          <input 
-            type="number"
-            step="0.1"
-            min="0" max="10"
-            value={filterRating} 
-            onChange={(e) => setFilterRating(e.target.value)}
-            placeholder="Min Puan"
-            style={{ ...inputStyle, width: "100px" }}
-          />
+            {/* Puan Filtresi (Yeni) */}
+            <input 
+              type="number"
+              step="0.1"
+              min="0" max="10"
+              value={filterRating} 
+              onChange={(e) => setFilterRating(e.target.value)}
+              placeholder="Min Puan"
+              style={{ ...inputStyle, width: "100px" }}
+            />
 
-          {/* Ara Butonu */}
-          <button type="submit" style={{ padding: "12px 24px", borderRadius: "12px", background: "#6366f1", color: "white", fontWeight: "bold", border: "none", cursor: "pointer" }}>
-            Ara
-          </button>
-        </form>
+            {/* Ara Butonu */}
+            <button type="submit" style={{ padding: "12px 24px", borderRadius: "12px", background: "#6366f1", color: "white", fontWeight: "bold", border: "none", cursor: "pointer" }}>
+              Ara
+            </button>
+          </form>
+        </div>
+
+        {/* İÇERİK LİSTELERİ */}
+        {searchResults.length > 0 && (
+            <CategoryRow title="🔍 Filtrelenmiş Sonuçlar" items={searchResults} contentType={searchType} onClickItem={(item, type) => navigate(`/content/${item.id}?type=${type}`)} />
+        )}
+
+        {/* Sadece arama yapılmadığında önerileri göster */}
+        {searchResults.length === 0 && (
+          <>
+            <CategoryRow title="🔥 En Popülerler" items={mostPopular} contentType="movie" onClickItem={(item, type) => navigate(`/content/${item.id}?type=${type}`)} />
+            <CategoryRow title="⭐ En Yüksek Puanlılar" items={topRated} contentType="movie" onClickItem={(item, type) => navigate(`/content/${item.id}?type=${type}`)} />
+          </>
+        )}
       </div>
-
-      {/* İÇERİK */}
-      {loading ? (
-        <div style={{ textAlign: "center", color: "#64748b" }}>Yükleniyor...</div>
-      ) : (
-        <>
-          {searchResults.length > 0 && (
-             <CategoryRow title="🔍 Filtrelenmiş Sonuçlar" items={searchResults} contentType={searchType} onClickItem={(item, type) => navigate(`/content/${item.id}?type=${type}`)} />
-          )}
-
-          {/* Sadece arama yapılmadığında önerileri göster */}
-          {searchResults.length === 0 && (
-            <>
-              <CategoryRow title="🔥 En Popülerler" items={mostPopular} contentType="movie" onClickItem={(item, type) => navigate(`/content/${item.id}?type=${type}`)} />
-              <CategoryRow title="⭐ En Yüksek Puanlılar" items={topRated} contentType="movie" onClickItem={(item, type) => navigate(`/content/${item.id}?type=${type}`)} />
-            </>
-          )}
-        </>
-      )}
     </div>
   );
 }

@@ -22,98 +22,175 @@ export default function Login() {
     }
   };
 
+  // --- STİL AYARLARI ---
+  // Inputlar için ortak stil (Koyu tema uyumlu)
+  const inputStyle = {
+    bgcolor: "#333", // Koyu gri arka plan
+    borderRadius: "4px",
+    input: { color: "white" }, // Yazı rengi beyaz
+    "& .MuiOutlinedInput-root": {
+      "& fieldset": { border: "none" }, // Kenarlığı kaldır
+      "&:hover fieldset": { border: "none" },
+      "&.Mui-focused fieldset": { border: "none" },
+    },
+  };
+
   return (
     <Box
       sx={{
         width: "100vw",
         height: "100vh",
+        position: "relative",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#0d0f2d",
+        // Arka plan resmi (Netflix tarzı, senin istediğin görsel)
+        backgroundImage: 'url("https://assets.nflxext.com/ffe/siteui/vlv3/f841d4c7-10e1-40af-bcae-07a3f8dc141a/f6d7434e-d6de-4185-a6d4-c77a2d08737b/US-en-20220502-popsignuptwoweeks-perspective_alpha_website_medium.jpg")',
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        "&::before": {
+          // Resmin üzerine siyah perde (overlay)
+          content: '""',
+          position: "absolute",
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.6)", // Biraz daha koyulaştırdım ki mor buton patlasın
+          zIndex: 1,
+        },
       }}
     >
-      <Box
+      {/* Sol Üst Logo */}
+      <Typography
+        variant="h4"
         sx={{
-          width: 380,
-          background: "white",
-          borderRadius: "20px",
-          p: 4,
-          boxShadow: "0 0 40px rgba(0,0,0,0.2)",
+          position: "absolute",
+          top: 25,
+          left: 40,
+          zIndex: 2,
+          fontWeight: 900,
+          // Senin temanın mor rengiyle logo
+          background: "linear-gradient(to right, #8b5cf6, #6366f1)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          textShadow: "0px 2px 10px rgba(99, 102, 241, 0.3)", // Hafif mor parıltı
+          fontFamily: "'Bebas Neue', sans-serif",
+          letterSpacing: 2
         }}
       >
-        <Typography variant="h4" fontWeight={700} textAlign="center" mb={3}>
-          Login
+        SOCIAL LIBRARY
+      </Typography>
+
+      <Box
+        sx={{
+          zIndex: 2,
+          width: "100%",
+          maxWidth: "450px",
+          backgroundColor: "rgba(0, 0, 0, 0.75)", // Yarı saydam siyah kutu
+          borderRadius: "8px", // Köşeleri biraz daha yumuşattım
+          p: { xs: 4, md: "60px 68px 40px" },
+          display: "flex",
+          flexDirection: "column",
+          color: "white",
+          boxShadow: "0 10px 40px rgba(0,0,0,0.5)" // Derinlik katan gölge
+        }}
+      >
+        <Typography variant="h4" fontWeight={700} mb={4} textAlign="left">
+          Oturum Aç
         </Typography>
 
+        {/* Error Mesajı */}
+        {error && (
+          <Box sx={{ bgcolor: "#ef4444", p: 2, borderRadius: 1, mb: 2 }}>
+            <Typography fontSize={14} color="white">
+              {error}
+            </Typography>
+          </Box>
+        )}
+
         {/* Email */}
-        <Typography fontSize={14} mb={1}>
-          Email
-        </Typography>
         <TextField
           fullWidth
-          placeholder="Type your email"
+          placeholder="E-posta veya telefon numarası"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          sx={{ mb: 2 }}
+          variant="outlined"
+          sx={{ ...inputStyle, mb: 2 }}
         />
 
         {/* Password */}
-        <Typography fontSize={14} mb={1}>
-          Password
-        </Typography>
         <TextField
           fullWidth
           type="password"
-          placeholder="Type your password"
+          placeholder="Parola"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          sx={{ mb: 1 }}
+          variant="outlined"
+          sx={{ ...inputStyle, mb: 4 }}
         />
-
-        {/* Error */}
-        {error && (
-          <Typography color="error" fontSize={14} mb={1}>
-            {error}
-          </Typography>
-        )}
 
         <Button
           fullWidth
           variant="contained"
           sx={{
-            mt: 2,
-            bgcolor: "#111",
+            // 🔥 Senin Mor Gradient Butonun
+            background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+            color: "white",
+            fontWeight: "bold",
             height: 48,
-            borderRadius: "10px",
-            "&:hover": { bgcolor: "#222" },
+            borderRadius: "4px",
+            fontSize: "1rem",
+            textTransform: "none",
+            boxShadow: "0 4px 15px rgba(99, 102, 241, 0.4)", // Mor gölge efekti
+            transition: "transform 0.2s, box-shadow 0.2s",
+            "&:hover": { 
+                background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+                transform: "scale(1.02)",
+                boxShadow: "0 6px 20px rgba(99, 102, 241, 0.6)"
+            },
           }}
           onClick={handleLogin}
         >
-          LOGIN
+          Oturum Aç
         </Button>
 
-        {/* 🔥 Şifremi Unuttum */}
-        <Typography
-          mt={2}
-          fontSize={14}
-          color="primary"
-          sx={{ cursor: "pointer", textAlign: "center" }}
-          onClick={() => navigate("/forgot-password")}
+        {/* Alt Linkler */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            mt: 2,
+            color: "#b3b3b3",
+            fontSize: "13px",
+          }}
         >
-          Şifremi Unuttum?
-        </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+             <Typography fontSize={13} color="#b3b3b3">Beni hatırla</Typography>
+          </Box>
+          <Typography
+            onClick={() => navigate("/forgot-password")}
+            sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline", color: "white" } }}
+          >
+            Yardım ister misiniz?
+          </Typography>
+        </Box>
 
-        {/* 🔥 Kayıt Ol */}
-        <Typography
-          mt={1}
-          fontSize={14}
-          color="primary"
-          sx={{ cursor: "pointer", textAlign: "center" }}
-          onClick={() => navigate("/register")}
-        >
-          Hesabın yok mu? Kayıt Ol
-        </Typography>
+        {/* Kayıt Ol Bölümü */}
+        <Box mt={8}>
+          <Typography color="#737373" fontSize={16}>
+            Social Library'ye yeni misiniz?{" "}
+            <span
+              onClick={() => navigate("/register")}
+              style={{
+                color: "white",
+                cursor: "pointer",
+                fontWeight: 600,
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.textDecoration = "underline")}
+              onMouseOut={(e) => (e.currentTarget.style.textDecoration = "none")}
+            >
+              Şimdi kaydolun.
+            </span>
+          </Typography>
+        </Box>
       </Box>
     </Box>
   );
