@@ -46,18 +46,29 @@ export default function AddToListModal({
   const handleAdd = async (listId: number) => {
     setSavingId(listId);
     try {
-      await api.post(`/CustomList/${listId}/add`, {
-        contentId,
-        type,
-        title,
-        imageUrl
+      // 🛠️ DÜZELTME BURADA YAPILDI:
+      // 1. URL "/CustomList/toggle-item" olarak değiştirildi (Backend ile uyumlu)
+      // 2. "listId" URL yerine body'nin içine eklendi (Backend DTO ile uyumlu)
+      
+      const res = await api.post("/CustomList/toggle-item", {
+        listId: listId,  // <--- Backend bunu body içinde bekliyor
+        contentId: contentId,
+        type: type,
+        title: title,
+        imageUrl: imageUrl
       });
 
-      alert("📁 İçerik listeye eklendi!");
+      // Backend "added" veya "removed" dönebilir (Toggle mantığı)
+      if (res.data.action === "added") {
+        alert("✅ İçerik listeye eklendi!");
+      } else {
+        alert("🗑️ İçerik listeden çıkarıldı.");
+      }
+      
       onClose();
 
     } catch (err) {
-      console.error("Listeye ekleme hatası:", err);
+      console.error("Listeye işlem hatası:", err);
       alert("Bir hata oluştu.");
     } finally {
       setSavingId(null);
@@ -94,7 +105,7 @@ export default function AddToListModal({
           alignItems: "center",
           gap: "10px"
         }}>
-          📂 Listeye Ekle
+          📂 Listeye Ekle / Çıkar
         </h2>
 
         {/* İçerik kartı */}
@@ -123,29 +134,40 @@ export default function AddToListModal({
           <div style={{ textAlign: "center", padding: "20px" }}>Yükleniyor...</div>
         ) : lists.length === 0 ? (
           <div style={{ textAlign: "center", padding: "20px", opacity: 0.7 }}>
-            Hiç özel listen yok.
+            Hiç özel listen yok. Profilinden yeni liste oluşturabilirsin.
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {lists.map(list => (
-              <button
-                key={list.id}
-                onClick={() => handleAdd(list.id)}
-                style={{
-                  background: savingId === list.id ? "#0ea5e9" : "#334155",
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  cursor: "pointer",
-                  color: "white",
-                  fontWeight: 600,
-                  textAlign: "left",
-                  transition: "all 0.2s"
-                }}
-              >
-                {savingId === list.id ? "Ekleniyor..." : `📁 ${list.name}`}
-              </button>
-            ))}
+            {lists.map(list => {
+              // İçerik bu listede var mı kontrolü (Basit kontrol)
+              const isAdded = list.items?.some(i => i.contentId === String(contentId));
+              
+              return (
+                <button
+                  key={list.id}
+                  onClick={() => handleAdd(list.id)}
+                  style={{
+                    background: savingId === list.id ? "#0ea5e9" : (isAdded ? "rgba(16, 185, 129, 0.2)" : "#334155"),
+                    border: isAdded ? "1px solid #10b981" : "1px solid rgba(255,255,255,0.15)",
+                    padding: "12px",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    color: "white",
+                    fontWeight: 600,
+                    textAlign: "left",
+                    transition: "all 0.2s",
+                    display: "flex", justifyContent: "space-between", alignItems: "center"
+                  }}
+                >
+                  <span>📂 {list.name}</span>
+                  {savingId === list.id ? (
+                    <span style={{fontSize: "0.8rem"}}>İşleniyor...</span>
+                  ) : (
+                    isAdded && <span style={{fontSize: "1.2rem"}}>✅</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
 

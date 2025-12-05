@@ -2,5 +2,5 @@ namespace SocialLibrary.API.Services;
 
 public interface IEmailService
 {
-    Task SendAsync(string to, string subject, string body);
+    Task SendEmailAsync(string toEmail, string subject, string body);
 }

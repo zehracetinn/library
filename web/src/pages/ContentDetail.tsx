@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import api from "../api/axiosClient";
-import AddToListModal from "../components/AddToListModal"; // ✅ Modal import edildi
+import AddToListModal from "../components/AddToListModal"; // 🟢 1. Modal Import Edildi
 
 // --- TİP TANIMLAMALARI ---
 interface ContentDetail {
@@ -52,8 +52,11 @@ export default function ContentDetailPage() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  
+  // URL'den türü al (yoksa varsayılan 'movie')
   const type = searchParams.get("type") ?? "movie";
 
+  // --- STATE ---
   const [content, setContent] = useState<ContentDetail | null>(null);
   const [ratingSummary, setRatingSummary] = useState<RatingSummary>({ average: 0, count: 0 });
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -65,13 +68,15 @@ export default function ContentDetailPage() {
   const [saving, setSaving] = useState(false);
   const [reviewText, setReviewText] = useState("");
   
-  // ✅ Modal Görünürlük State'i
+  // 🟢 2. Modal Görünürlük State'i
   const [showListModal, setShowListModal] = useState(false);
 
+  // --- VERİ YÜKLEME ---
   const loadAll = async () => {
     if (!id) return;
     setLoading(true);
     try {
+      // Paralel istekler (Performans için)
       const [detailRes, ratingRes, reviewsRes, userStatusRes, userRatingRes] = await Promise.all([
         api.get<ContentDetail>(`/Content/${id}`, { params: { type } }),
         api.get<RatingSummary>(`/Ratings/content/${id}`, { params: { type } }).catch(() => ({ data: { average: 0, count: 0 } })),
@@ -97,6 +102,8 @@ export default function ContentDetailPage() {
     loadAll();
   }, [id, type]);
 
+  // --- AKSİYONLAR ---
+
   const handleRate = async () => {
     if (!id || userScore < 1 || userScore > 10 || !content) return;
     setSaving(true);
@@ -109,6 +116,7 @@ export default function ContentDetailPage() {
         imageUrl: content.imageUrl 
       });
 
+      // Ortalamayı güncelle
       const r = await api.get<RatingSummary>(`/Ratings/content/${id}`, { params: { type } });
       setRatingSummary(r.data);
       alert("Puanınız kaydedildi!");
@@ -144,6 +152,7 @@ export default function ContentDetailPage() {
     try {
       await api.post("/Reviews", { contentId: id, type, text: reviewText.trim() });
       setReviewText("");
+      // Yorumları güncelle
       const reviewsRes = await api.get<Review[]>(`/Reviews/content/${id}`, { params: { type } });
       setReviews(reviewsRes.data || []);
     } catch (err) {
@@ -153,6 +162,7 @@ export default function ContentDetailPage() {
     }
   };
 
+  // --- LOADING ---
   if (loading || !content) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
@@ -166,7 +176,7 @@ export default function ContentDetailPage() {
   return (
     <div style={{ minHeight: "100vh", background: "#020617", color: "#e2e8f0", position: "relative", overflowX: "hidden" }}>
       
-      {/* ARKA PLAN */}
+      {/* 1. ARKA PLAN (Blur Efektli) */}
       <div 
         style={{
           position: "absolute", top: 0, left: 0, right: 0, height: "60vh",
@@ -180,6 +190,7 @@ export default function ContentDetailPage() {
         }}
       />
 
+      {/* 2. İÇERİK ALANI */}
       <div style={{ position: "relative", zIndex: 1, maxWidth: "1200px", margin: "0 auto", padding: "40px 24px" }}>
         
         {/* GERİ BUTONU */}
@@ -194,13 +205,13 @@ export default function ContentDetailPage() {
           ← Geri Dön
         </button>
 
-        {/* ÜST BÖLÜM (HERO) */}
+        {/* HERO SECTION (Poster ve Bilgiler) */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "40px", alignItems: "flex-start" }}>
           
           {/* POSTER */}
           <div style={{ flex: "0 0 300px", maxWidth: "100%" }}>
             <img
-              src={content.imageUrl}
+              src={content.imageUrl || "https://via.placeholder.com/300x450"}
               alt={content.title}
               style={{
                 width: "100%", borderRadius: "16px",
@@ -225,7 +236,7 @@ export default function ContentDetailPage() {
               </span>
             </div>
 
-            {/* AKSİYON PANELİ (Puanlama & Butonlar) */}
+            {/* AKSİYON PANELİ */}
             <div style={{ 
               background: "rgba(30, 41, 59, 0.6)", backdropFilter: "blur(12px)", 
               padding: "24px", borderRadius: "20px", border: "1px solid rgba(255,255,255,0.08)",
@@ -272,10 +283,10 @@ export default function ContentDetailPage() {
                 </div>
               </div>
 
-              {/* BUTONLAR (İzledim, Listeye Ekle) */}
+              {/* BUTONLAR */}
               <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", gap: "12px", flexWrap: "wrap" }}>
                 
-                {/* ✅ YENİ EKLENEN BUTON: Listeye Ekle */}
+                {/* 🟢 3. LİSTEYE EKLE BUTONU */}
                 <button 
                   onClick={() => setShowListModal(true)}
                   style={{
@@ -290,31 +301,16 @@ export default function ContentDetailPage() {
                   📂 Listeye Ekle
                 </button>
 
+                {/* İZLEME / OKUMA DURUMU BUTONLARI */}
                 {isMovie ? (
                   <>
-                    <StatusButton 
-                      label="👁️ İzledim" 
-                      isActive={status === "watched"} 
-                      onClick={() => handleStatusChange("watched")} 
-                    />
-                    <StatusButton 
-                      label="📅 İzlenecek" 
-                      isActive={status === "toWatch"} 
-                      onClick={() => handleStatusChange("toWatch")} 
-                    />
+                    <StatusButton label="👁️ İzledim" isActive={status === "watched"} onClick={() => handleStatusChange("watched")} />
+                    <StatusButton label="📅 İzlenecek" isActive={status === "toWatch"} onClick={() => handleStatusChange("toWatch")} />
                   </>
                 ) : (
                   <>
-                    <StatusButton 
-                      label="📖 Okudum" 
-                      isActive={status === "read"} 
-                      onClick={() => handleStatusChange("read")} 
-                    />
-                    <StatusButton 
-                      label="📚 Okunacak" 
-                      isActive={status === "toRead"} 
-                      onClick={() => handleStatusChange("toRead")} 
-                    />
+                    <StatusButton label="📖 Okudum" isActive={status === "read"} onClick={() => handleStatusChange("read")} />
+                    <StatusButton label="📚 Okunacak" isActive={status === "toRead"} onClick={() => handleStatusChange("toRead")} />
                   </>
                 )}
               </div>
@@ -337,6 +333,7 @@ export default function ContentDetailPage() {
         <div style={{ marginTop: "80px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "40px" }}>
           <h2 style={{ fontSize: "2rem", marginBottom: "30px", fontWeight: 700 }}>Yorumlar ({reviews.length})</h2>
           
+          {/* Yorum Yazma */}
           <div style={{ marginBottom: "50px", display: "flex", gap: "20px", alignItems: "flex-start" }}>
             <div style={{ width: "50px", height: "50px", borderRadius: "50%", background: "#334155", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", flexShrink: 0 }}>
               ✍️
@@ -349,8 +346,7 @@ export default function ContentDetailPage() {
                 style={{
                   width: "100%", padding: "20px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.1)",
                   background: "rgba(15, 23, 42, 0.6)", color: "white", minHeight: "120px", resize: "vertical",
-                  outline: "none", fontSize: "1rem", fontFamily: "inherit",
-                  transition: "border-color 0.2s"
+                  outline: "none", fontSize: "1rem", fontFamily: "inherit", transition: "border-color 0.2s"
                 }}
                 onFocus={(e) => e.target.style.borderColor = "#6366f1"}
                 onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
@@ -362,9 +358,7 @@ export default function ContentDetailPage() {
                   style={{
                     background: "linear-gradient(135deg, #6366f1, #a855f7)", color: "white", border: "none",
                     padding: "12px 30px", borderRadius: "30px", fontWeight: "bold", cursor: "pointer",
-                    boxShadow: "0 4px 20px rgba(99, 102, 241, 0.4)",
-                    opacity: (!reviewText.trim() || saving) ? 0.5 : 1,
-                    transition: "transform 0.1s"
+                    boxShadow: "0 4px 20px rgba(99, 102, 241, 0.4)", opacity: (!reviewText.trim() || saving) ? 0.5 : 1
                   }}
                 >
                   {saving ? "Gönderiliyor..." : "Yorumu Gönder"}
@@ -373,6 +367,7 @@ export default function ContentDetailPage() {
             </div>
           </div>
 
+          {/* Yorum Listesi */}
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
              {reviews.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "40px", background: "rgba(255,255,255,0.02)", borderRadius: "16px", color: "#64748b" }}>
@@ -400,7 +395,7 @@ export default function ContentDetailPage() {
 
       </div>
 
-      {/* ✅ MODAL PENCERESİ: Buraya koşullu olarak eklendi */}
+      {/* 🟢 4. MODAL PENCERESİ: Buraya koşullu olarak eklendi */}
       {showListModal && content && (
         <AddToListModal
           contentId={content.id}
@@ -415,6 +410,7 @@ export default function ContentDetailPage() {
   );
 }
 
+// Alt Bileşen: Durum Butonu
 function StatusButton({ label, isActive, onClick }: { label: string; isActive: boolean; onClick: () => void }) {
   return (
     <button

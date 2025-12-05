@@ -66,6 +66,8 @@ builder.Services.AddHttpClient<GoogleBooksService>(c =>
     c.BaseAddress = new Uri("https://www.googleapis.com/books/v1/");
 });
 
+builder.Services.AddScoped<IEmailService, EmailService>();
+
 // --- 6. DİĞER SERVİSLER ---
 // NOT: TmdbService ve GoogleBooksService'i yukarıda eklediğimiz için burada tekrar AddScoped yapmıyoruz!
 builder.Services.AddScoped<ITokenService, TokenService>();

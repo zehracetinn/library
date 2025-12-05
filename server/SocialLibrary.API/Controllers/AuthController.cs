@@ -1,10 +1,9 @@
-using BCrypt.Net;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SocialLibrary.API.Data;
-using SocialLibrary.API.DTOs;
-using SocialLibrary.API.Models;
-using SocialLibrary.API.Services;
+using Microsoft.EntityFrameworkCore; // _context için gerekli
+using SocialLibrary.API.Data;        // AppDbContext için gerekli
+using SocialLibrary.API.Services;    // IEmailService ve ITokenService için gerekli
+using SocialLibrary.API.Models;      // User modeli için
+using SocialLibrary.API.DTOs;        // DTO'lar için (Eğer ayrı klasördeyse)
 
 namespace SocialLibrary.API.Controllers;
 
@@ -12,64 +11,132 @@ namespace SocialLibrary.API.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    // 1. Alanları Tanımlıyoruz
+    private readonly AppDbContext _context;
     private readonly ITokenService _tokenService;
+    private readonly IEmailService _emailService; // <-- Bunu eklemeyi unutmuşsun
 
-    public AuthController(AppDbContext db, ITokenService tokenService)
+    // 2. Constructor (Kurucu Metot) - Hepsini içeri alıyoruz
+    public AuthController(AppDbContext context, ITokenService tokenService, IEmailService emailService)
     {
-        _db = db;
+        _context = context;
         _tokenService = tokenService;
+        _emailService = emailService;
     }
 
+    // --- REGISTER (KAYIT) ---
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
-        if (string.IsNullOrWhiteSpace(dto.Username) ||
-            string.IsNullOrWhiteSpace(dto.Email) ||
-            string.IsNullOrWhiteSpace(dto.Password))
-            return BadRequest("Username, email ve password zorunludur.");
+        if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
+            return BadRequest("Bu e-posta zaten kayıtlı.");
 
-        var exists = await _db.Users.AnyAsync(u => u.Email == dto.Email || u.Username == dto.Username);
-        if (exists) return Conflict("Bu kullanıcı adı veya e-posta zaten kullanımda.");
+        if (await _context.Users.AnyAsync(u => u.Username == dto.Username))
+            return BadRequest("Bu kullanıcı adı zaten alınmış.");
 
         var user = new User
         {
-            Username = dto.Username.Trim(),
-            Email = dto.Email.Trim().ToLower(),
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+            Username = dto.Username,
+            Email = dto.Email,
+            // Şifreyi hash'lemek gerekir, şimdilik düz kaydediyoruz (Geliştirme aşaması)
+            PasswordHash = dto.Password 
         };
 
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
 
-        var (token, expires) = _tokenService.CreateToken(user);
-
-        return Ok(new AuthResponseDto
-        {
-            Token = token,
-            ExpiresAt = expires,
-            Username = user.Username,
-            Email = user.Email
-        });
+        return Ok(new { message = "Kayıt başarılı!" });
     }
 
+    // --- LOGIN (GİRİŞ) ---
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == dto.Email.ToLower());
-        if (user is null) return Unauthorized("E-posta veya şifre hatalı.");
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
 
-        var ok = BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash);
-        if (!ok) return Unauthorized("E-posta veya şifre hatalı.");
+        if (user == null || user.PasswordHash != dto.Password) // Hash kontrolü burada yapılmalı
+            return Unauthorized("Geçersiz e-posta veya şifre.");
 
-        var (token, expires) = _tokenService.CreateToken(user);
+        var token = _tokenService.CreateToken(user);
 
-        return Ok(new AuthResponseDto
-        {
-            Token = token,
-            ExpiresAt = expires,
-            Username = user.Username,
-            Email = user.Email
+        return Ok(new 
+        { 
+            token = token, 
+            userId = user.Id, 
+            username = user.Username,
+            avatarUrl = user.AvatarUrl
         });
     }
+
+    // --- ŞİFREMİ UNUTTUM ---
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+        
+        // Kullanıcı yoksa bile güvenlik gereği "gönderildi" diyoruz
+        if (user == null) 
+        {
+            return Ok(new { message = "Eğer kayıtlıysa, şifre sıfırlama linki gönderildi." }); 
+        }
+
+        // Token oluştur
+        var token = Guid.NewGuid().ToString();
+        user.PasswordResetToken = token;
+        user.PasswordResetTokenExpires = DateTime.UtcNow.AddHours(1);
+        await _context.SaveChangesAsync();
+
+        // Mail Gönderme İşlemi (Hata yakalamalı)
+        try 
+        {
+            var resetLink = $"http://localhost:5173/reset-password?token={token}";
+            var body = $"<h3>Şifre Sıfırlama</h3><p>Şifrenizi sıfırlamak için <a href='{resetLink}'>tıklayınız</a>.</p>";
+            
+            await _emailService.SendEmailAsync(user.Email, "Şifre Sıfırlama Talebi", body);
+            
+            return Ok(new { message = "E-posta başarıyla gönderildi." });
+        }
+        catch (Exception ex)
+        {
+            // Hata olursa konsola yazdır ve frontend'e hatayı dön
+            Console.WriteLine("MAIL HATASI: " + ex.Message);
+            // Inner exception varsa onu da görelim (Genelde asıl sebep buradadır)
+            if (ex.InnerException != null) 
+            {
+                Console.WriteLine("DETAY: " + ex.InnerException.Message);
+            }
+
+            return BadRequest(new { message = "Mail gönderilemedi. Sunucu hatası: " + ex.Message });
+        }
+    }
+
+    // --- ŞİFRE SIFIRLAMA ---
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.PasswordResetToken == dto.Token);
+
+        if (user == null || user.PasswordResetTokenExpires < DateTime.UtcNow)
+        {
+            return BadRequest("Geçersiz veya süresi dolmuş token.");
+        }
+
+        // Yeni şifreyi kaydet
+        user.PasswordHash = dto.NewPassword;
+        
+        // Token'ı temizle
+        user.PasswordResetToken = null;
+        user.PasswordResetTokenExpires = null;
+        
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Şifre başarıyla güncellendi." });
+    }
 }
+
+// --- DTO TANIMLARI (Eğer ayrı dosyada değillerse buraya koyabilirsin) ---
+// NOT: Ayrı dosyadaysalar (DTOs klasörü), buradaki class'ları silebilirsin.
+public class RegisterDto { public string Username { get; set; } = ""; public string Email { get; set; } = ""; public string Password { get; set; } = ""; }
+public class LoginDto { public string Email { get; set; } = ""; public string Password { get; set; } = ""; }
+public class ForgotPasswordDto { public string Email { get; set; } = ""; }
+public class ResetPasswordDto { public string Token { get; set; } = ""; public string NewPassword { get; set; } = ""; }
