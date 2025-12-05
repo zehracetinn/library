@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SocialLibrary.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1111d8cbf6c7679c6aeedd60ebd0fcadc7a528b1")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2c1e7f3e86d398c62bed3e0840eddc3f3fe69c47")]
 [assembly: System.Reflection.AssemblyProductAttribute("SocialLibrary.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SocialLibrary.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

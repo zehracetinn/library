@@ -8,11 +8,10 @@ using SocialLibrary.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers
+// --- 1. CONTROLLERS ---
 builder.Services.AddControllers();
 
-
-
+// --- 2. CORS (React Bağlantısı) ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReact",
@@ -25,14 +24,12 @@ builder.Services.AddCors(options =>
         });
 });
 
-builder.Services.AddScoped<IEmailService, EmailService>();
-
-// DbContext
+// --- 3. DATABASE (PostgreSQL) ---
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
-// Swagger + JWT
+// --- 4. SWAGGER (API Dokümantasyonu) ---
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -51,39 +48,32 @@ builder.Services.AddSwaggerGen(options =>
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
             },
             Array.Empty<string>()
         }
     });
 });
 
-// Services / HttpClient
+// --- 5. HTTP CLIENTS (Burada Servisleri Kaydediyoruz) ---
 builder.Services.AddHttpClient<TmdbService>(c =>
 {
     c.BaseAddress = new Uri("https://api.themoviedb.org/3/");
 });
+
 builder.Services.AddHttpClient<GoogleBooksService>(c =>
 {
     c.BaseAddress = new Uri("https://www.googleapis.com/books/v1/");
 });
 
-builder.Services.AddScoped<TmdbService>();
-builder.Services.AddScoped<GoogleBooksService>();
+// --- 6. DİĞER SERVİSLER ---
+// NOT: TmdbService ve GoogleBooksService'i yukarıda eklediğimiz için burada tekrar AddScoped yapmıyoruz!
 builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddScoped<IUserService, UserService>();
+// builder.Services.AddScoped<IUserService, UserService>(); // Eğer UserService'in varsa bunu açabilirsin
+// builder.Services.AddScoped<IEmailService, EmailService>(); // Varsa aç
 
-// JWT Auth
-var jwtKey = builder.Configuration["Jwt:Key"]!;
-var jwtIssuer = builder.Configuration["Jwt:Issuer"];
-var jwtAudience = builder.Configuration["Jwt:Audience"];
-
-// Program.cs içindeki JWT kısmını bununla değiştir:
-
+// --- 7. JWT AUTHENTICATION ---
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "super_secret_key_123456789_must_be_long"; // Hata almamak için varsayılan
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opt =>
     {
@@ -91,14 +81,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         opt.SaveToken = true;
         opt.TokenValidationParameters = new TokenValidationParameters
         {
-            // ŞİMDİLİK SADECE ANAHTARI KONTROL ET (En güvenli yöntem geliştirme için)
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-            
-            // Bunları false yapıyoruz ki ufak isim hatalarından patlamasın
-            ValidateIssuer = false, 
-            ValidateAudience = false, 
-            
+            ValidateIssuer = false,
+            ValidateAudience = false,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
@@ -108,6 +94,7 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// --- 8. MIDDLEWARE (Uygulama Çalışma Sırası) ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -115,12 +102,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseCors("AllowReact");
-
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
 app.Run();

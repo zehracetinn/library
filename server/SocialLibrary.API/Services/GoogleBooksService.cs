@@ -12,28 +12,15 @@ public class GoogleBooksService
         _httpClient = httpClient;
     }
 
-    // --- 1) BİR TANE İÇİN (Eski kullanım) ---
-    public async Task<Content> SearchContentAsync(string query)
-    {
-        var list = await SearchContentListAsync(query);
-
-        if (list.Count == 0)
-            return new Content { Title = "No results found" };
-
-        return list[0];
-    }
-
-    // --- 2) LISTE OLARAK DÖNEN YENİ METOT ---
+    // --- LİSTE ARAMA ---
     public async Task<List<Content>> SearchContentListAsync(string query)
     {
-        var url =
-            $"https://www.googleapis.com/books/v1/volumes?q={Uri.EscapeDataString(query)}&maxResults=20";
+        var url = $"https://www.googleapis.com/books/v1/volumes?q={Uri.EscapeDataString(query)}&maxResults=20&printType=books";
 
         using var response = await _httpClient.GetAsync(url);
 
         if (!response.IsSuccessStatusCode)
         {
-            // Google tarafı 400/403 vs dönerse API’n Biz 500 atmayalım.
             return new List<Content>();
         }
 
@@ -42,14 +29,12 @@ public class GoogleBooksService
 
         var results = new List<Content>();
 
-        if (data?.items == null)
-            return results;
+        if (data?.items == null) return results;
 
         foreach (var item in data.items)
         {
             dynamic volume = item.volumeInfo;
 
-            // publishedDate bazen "1997", bazen "1997-06-26" geliyor
             string? year = null;
             if (volume?.publishedDate != null)
             {
@@ -61,6 +46,7 @@ public class GoogleBooksService
             if (volume?.imageLinks != null && volume.imageLinks.thumbnail != null)
             {
                 imageUrl = (string)volume.imageLinks.thumbnail;
+                imageUrl = imageUrl.Replace("http://", "https://");
             }
 
             results.Add(new Content
@@ -69,21 +55,21 @@ public class GoogleBooksService
                 Title = volume?.title,
                 Description = volume?.description,
                 Year = year,
-                ImageUrl = imageUrl
+                ImageUrl = imageUrl,
+                Type = "book" // Frontend için gerekli
             });
         }
-
         return results;
     }
 
-    // --- 3) DETAY ---
+    // --- DETAY GETİRME ---
     public async Task<ContentDetail> GetContentDetailsAsync(string id)
     {
         var url = $"https://www.googleapis.com/books/v1/volumes/{id}";
 
         using var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode)
-            throw new Exception("Google Books error: " + response.StatusCode);
+            return new ContentDetail { Id = id, Title = "Kitap Bulunamadı", Type = "book" };
 
         var json = await response.Content.ReadAsStringAsync();
         dynamic data = JsonConvert.DeserializeObject(json);
@@ -92,6 +78,19 @@ public class GoogleBooksService
         if (data.volumeInfo?.imageLinks != null && data.volumeInfo.imageLinks.thumbnail != null)
         {
             imageUrl = (string)data.volumeInfo.imageLinks.thumbnail;
+            imageUrl = imageUrl.Replace("http://", "https://");
+        }
+
+        string authors = "";
+        if (data.volumeInfo?.authors != null)
+        {
+            authors = string.Join(", ", data.volumeInfo.authors.ToObject<List<string>>());
+        }
+
+        string categories = "";
+        if (data.volumeInfo?.categories != null)
+        {
+            categories = string.Join(", ", data.volumeInfo.categories.ToObject<List<string>>());
         }
 
         return new ContentDetail
@@ -99,14 +98,12 @@ public class GoogleBooksService
             Id = id,
             Title = data.volumeInfo.title,
             Description = data.volumeInfo.description,
-            Authors = data.volumeInfo.authors != null
-                ? string.Join(", ", data.volumeInfo.authors)
-                : "",
-            Genre = data.volumeInfo.categories != null
-                ? string.Join(", ", data.volumeInfo.categories)
-                : "",
+            Authors = authors,
+            Genre = categories,
             Rating = data.volumeInfo.averageRating ?? 0,
-            ImageUrl = imageUrl
+            ImageUrl = imageUrl,
+            Year = data.volumeInfo?.publishedDate != null ? ((string)data.volumeInfo.publishedDate).Split('-')[0] : "",
+            Type = "book"
         };
     }
 }

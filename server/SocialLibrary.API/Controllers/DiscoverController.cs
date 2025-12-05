@@ -9,10 +9,12 @@ namespace SocialLibrary.API.Controllers;
 public class DiscoverController : ControllerBase
 {
     private readonly TmdbService _tmdbService;
+    private readonly GoogleBooksService _googleBooksService;
 
-    public DiscoverController(TmdbService tmdbService)
+    public DiscoverController(TmdbService tmdbService, GoogleBooksService googleBooksService)
     {
         _tmdbService = tmdbService;
+        _googleBooksService = googleBooksService;
     }
 
     // GET: /api/Discover/top-rated
@@ -39,14 +41,31 @@ public class DiscoverController : ControllerBase
         return Ok(new { items = new List<object>() });
     }
 
-    // --- YENİ EKLENEN FİLTRELEME KAPISI ---
-    // Bu metod olmadan Frontend filtre gönderse bile Backend cevap veremez.
-    // Örnek İstek: /api/Discover/search?query=Batman&year=2008&rating=8
+    // GET: /api/Discover/search
     [HttpGet("search")]
-    public async Task<IActionResult> Search([FromQuery] string? query, [FromQuery] string? genre, [FromQuery] int? year, [FromQuery] double? rating)
+    public async Task<IActionResult> Search(
+        [FromQuery] string? query, 
+        // HATA BURADAYDI: Varsayılan değeri olan parametreler en sonda olmalı veya diğerleri de varsayılan almalı.
+        // ÇÖZÜM: Hepsine = null veriyoruz.
+        [FromQuery] string type = "movie", 
+        [FromQuery] string? genre = null, 
+        [FromQuery] int? year = null, 
+        [FromQuery] double? rating = null)
     {
-        // TmdbService içindeki gelişmiş arama metodunu çağırıyoruz
-        var results = await _tmdbService.SearchMoviesAsync(query ?? "", genre, year, rating);
-        return Ok(new { items = results });
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return Ok(new { items = new List<object>() });
+        }
+
+        if (type == "book")
+        {
+            var bookResults = await _googleBooksService.SearchContentListAsync(query);
+            return Ok(new { items = bookResults });
+        }
+        else
+        {
+            var movieResults = await _tmdbService.SearchMoviesAsync(query, genre, year, rating);
+            return Ok(new { items = movieResults });
+        }
     }
 }

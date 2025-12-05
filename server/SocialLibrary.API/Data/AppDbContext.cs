@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using SocialLibrary.API.Models;
 
-namespace SocialLibrary.API.Data;
+// 👇 BURASI ÇOK ÖNEMLİ: Klasör yapına göre doğrusu bu.
+namespace SocialLibrary.API.Data; 
 
 public class AppDbContext : DbContext
 {
@@ -33,49 +34,13 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // USER - UNIQUE FIELDS
-        modelBuilder.Entity<User>()
-            .HasIndex(u => u.Email)
-            .IsUnique();
-
-        modelBuilder.Entity<User>()
-            .HasIndex(u => u.Username)
-            .IsUnique();
-
-        // ACTIVITY -> USER RELATION
-        modelBuilder.Entity<Activity>()
-            .HasOne(a => a.User)
-            .WithMany(u => u.Activities)
-            .HasForeignKey(a => a.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // ACTIVITY LIKE RELATION
-        modelBuilder.Entity<ActivityLike>()
-            .HasOne(l => l.Activity)
-            .WithMany(a => a.Likes)
-            .HasForeignKey(l => l.ActivityId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<ActivityLike>()
-            .HasOne(l => l.User)
-            .WithMany()
-            .HasForeignKey(l => l.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // ---------------------------
-        // FOLLOW RELATION (KRİTİK)
-        // ---------------------------
-
-        modelBuilder.Entity<Follow>()
-            .HasOne(f => f.Follower)
-            .WithMany()
-            .HasForeignKey(f => f.FollowerId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<Follow>()
-            .HasOne(f => f.Following)
-            .WithMany()
-            .HasForeignKey(f => f.FollowingId)
-            .OnDelete(DeleteBehavior.Restrict);
+        // İlişki ayarları... (Burası aynı kalabilir, değiştirmene gerek yok)
+        modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
+        modelBuilder.Entity<User>().HasIndex(u => u.Username).IsUnique();
+        
+        modelBuilder.Entity<Activity>().HasOne(a => a.User).WithMany(u => u.Activities).HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ActivityLike>().HasOne(l => l.Activity).WithMany(a => a.Likes).HasForeignKey(l => l.ActivityId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Follow>().HasOne(f => f.Follower).WithMany().HasForeignKey(f => f.FollowerId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Follow>().HasOne(f => f.Following).WithMany().HasForeignKey(f => f.FollowingId).OnDelete(DeleteBehavior.Restrict);
     }
 }
