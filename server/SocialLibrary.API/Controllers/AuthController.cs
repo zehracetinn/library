@@ -47,26 +47,26 @@ public class AuthController : ControllerBase
 
         return Ok(new { message = "Kayıt başarılı!" });
     }
+[HttpPost("login")]
+public async Task<IActionResult> Login([FromBody] LoginDto dto)
+{
+    var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
 
-    // --- LOGIN (GİRİŞ) ---
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginDto dto)
-    {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+    if (user == null || user.PasswordHash != dto.Password)
+        return Unauthorized("Geçersiz e-posta veya şifre.");
 
-        if (user == null || user.PasswordHash != dto.Password) // Hash kontrolü burada yapılmalı
-            return Unauthorized("Geçersiz e-posta veya şifre.");
+    var (jwt, expiresAt) = _tokenService.CreateToken(user);
 
-        var token = _tokenService.CreateToken(user);
+    return Ok(new 
+    { 
+        token = jwt,            // ✔ Artık JWT string gidiyor
+        expiresAt = expiresAt,  // ✔ Son kullanma süresi
+        userId = user.Id, 
+        username = user.Username,
+        avatarUrl = user.AvatarUrl
+    });
+}
 
-        return Ok(new 
-        { 
-            token = token, 
-            userId = user.Id, 
-            username = user.Username,
-            avatarUrl = user.AvatarUrl
-        });
-    }
 
     // --- ŞİFREMİ UNUTTUM ---
     [HttpPost("forgot-password")]
